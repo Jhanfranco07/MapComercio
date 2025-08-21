@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa Ambulantes — Turnos con emojis y color de borde</title>
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5}
+    .header{background:#fff;padding:20px;box-shadow:0 2px 4px rgba(0,0,0,.1);text-align:center}
+    .header h1{color:#1a73e8;margin-bottom:10px;font-size:28px}
+    .header p{color:#666;font-size:16px}
+    .controls{background:#fff;padding:15px 20px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+    .control-group{display:flex;align-items:center;gap:8px}
+    .control-group label{font-weight:500;color:#333}
+    select,input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+    select:focus,input:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+    .stats{background:#fff;padding:15px 20px;display:flex;gap:20px;align-items:center;border-bottom:1px solid #eee}
+    .stat-item{display:flex;align-items:center;gap:8px;background:#f8f9fa;padding:8px 16px;border-radius:20px}
+    .stat-item .icon{font-size:18px}
+    .stat-item .number{font-weight:bold;color:#1a73e8}
+    #map{height:600px;width:100%}
+    .map-container{background:#fff;margin:0}
+
+    .legends{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#fff;padding:15px 20px;border-top:1px solid #eee}
+    .legend h3{margin-bottom:10px;color:#333;font-size:16px}
+    .legend-items{display:flex;gap:15px;flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:14px}
+    .legend-color{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+    .legend-ring{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #000;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+
+    @media (max-width:900px){ .legends{grid-template-columns:1fr} }
+
+    .custom-popup{font-family:inherit;min-width:260px;max-width:360px}
+    .popup-header{background:#1a73e8;color:#fff;padding:12px 15px;border-radius:6px 6px 0 0;font-weight:bold;margin:-8px -8px 10px -8px}
+    .popup-content{padding:0 4px}
+    .popup-field{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .popup-field .label{font-weight:500;color:#666;min-width:110px}
+    .popup-field .value{color:#333}
+  </style>
+
+  <!-- Lectores de Excel y CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="header">
+    <h1>Mapa de Ambulantes Legales</h1>
+    <p>PACHACÁMAC — Lima, Perú</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>🏷️ Giro:</label>
+      <select id="giroFilter">
+        <option value="todos">Todos los giros</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>🕐 Turno:</label>
+      <select id="turnoFilter">
+        <option value="todos">Todos</option>
+        <option value="manana">🌅 Mañana</option>
+        <option value="tarde">🌆 Tarde</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>🔍 Buscar:</label>
+      <input type="text" id="searchInput" placeholder="Nombre, producto, zona o giro..." />
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-item"><span class="icon">👥</span><span>Total: <span class="number" id="totalCount">0</span></span></div>
+    <div class="stat-item"><span class="icon">📍</span><span>Mostrando: <span class="number" id="visibleCount">0</span></span></div>
+    <div class="stat-item"><span class="icon">🏪</span><span>Zonas activas: <span class="number" id="activeZones">0</span></span></div>
+  </div>
+
+  <div class="map-container">
+    <div id="map"></div>
+  </div>
+
+  <div class="legends">
+    <div class="legend">
+      <h3>Leyenda por giro (relleno)</h3>
+      <div class="legend-items" id="legendItemsGiro"></div>
+    </div>
+    <div class="legend">
+      <h3>Leyenda por turno (borde)</h3>
+      <div class="legend-items">
+        <div class="legend-item"><div class="legend-ring" style="border-color:#f59e0b"></div><span>🌅 Mañana</span></div>
+        <div class="legend-item"><div class="legend-ring" style="border-color:#6366f1"></div><span>🌆 Tarde</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =================== CONFIG ===================
+    const DATA_CANDIDATES = ["ambulantes.xlsx", "ambulantes.csv"]; // archivos en el mismo directorio
+    const MAP_ID = "d94bddbce2a268e5807e32b1"; // opcional
+    const PERU_CENTER = { lat: -12.1620, lng: -76.9340 };
+
+    // =================== UTILIDADES ===================
+    let ambulantesData = [];
+
+    const normalizeKey = (s) =>
+      String(s||'').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .trim().replace(/\s+/g,'_');
+
+    function parseUbicacion(val) {
+      if (!val) return {lat:null,lng:null};
+      const txt = String(val).replace(/\s+/g,'');
+      const [la, ln] = txt.split(',');
+      const lat = parseFloat(la), lng = parseFloat(ln);
+      return { lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null };
+    }
+
+    // Normaliza Turno -> 'manana' | 'tarde' (solo 2 turnos permitidos)
+    function normalizeTurno(val) {
+      const k = String(val||'')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'');
+      if (k.includes('tarde')) return 'tarde';
+      if (k.includes('manana') || k.includes('mañana')) return 'manana';
+      return ''; // desconocido
+    }
+
+    // Si falta 'turno', inferimos desde 'horario'
+    function inferTurnoDesdeHorario(h) {
+      const t = String(h||'').toUpperCase();
+      if (t.includes('PM')) return 'tarde';
+      if (t.includes('AM')) return 'manana';
+      const nums = (t.match(/\d{1,2}/g) || []).map(n=>parseInt(n,10));
+      const mean = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : 0;
+      return mean >= 12 ? 'tarde' : 'manana';
+    }
+
+    function colorForGiro(giro) {
+      const s = String(giro||'desconocido');
+      let hash = 0;
+      for (let i=0;i<s.length;i++) hash = (hash*31 + s.charCodeAt(i)) >>> 0;
+      const h = hash % 360;
+      return `hsl(${h} 70% 50%)`;
+    }
+
+    // Colores de BORDE por turno
+    function strokeForTurno(turno) {
+      return (turno === 'tarde') ? '#6366f1' /* indigo-500 */ : '#f59e0b' /* amber-500 */;
+    }
+
+    // =================== MAPA ===================
+    let map, infoWindow, markers = [];
+
+    function circleSvgNode(fillColor, strokeColor) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+          <circle cx="14" cy="14" r="11" fill="${fillColor}" />
+          <circle cx="14" cy="14" r="12.5" fill="none" stroke="${strokeColor}" stroke-width="3" />
+        </svg>
+      `;
+      return wrap;
+    }
+    function circleSvgIcon(fillColor, strokeColor) { // fallback Marker clásico
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="11" fill="${fillColor}" />
+          <circle cx="14" cy="14" r="12.5" fill="none" stroke="${strokeColor}" stroke-width="3" />
+        </svg>`;
+      return {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        scaledSize: new google.maps.Size(28,28),
+        anchor: new google.maps.Point(14,14)
+      };
+    }
+
+    function createPopupHtml(a) {
+      return `
+        <div class="custom-popup">
+          <div class="popup-header">${a.nombre}</div>
+          <div class="popup-content">
+            <div class="popup-field"><span class="label">Giro:</span><span class="value">${a.tipo || '-'}</span></div>
+            <div class="popup-field"><span class="label">Productos:</span><span class="value">${a.productos || '-'}</span></div>
+            <div class="popup-field"><span class="label">Zona:</span><span class="value">${a.zona || '-'}</span></div>
+            <div class="popup-field"><span class="label">Lugar exacto:</span><span class="value">${a.direccion || '-'}</span></div>
+            <div class="popup-field"><span class="label">Turno:</span><span class="value">${a.turno_raw ? (a.turno==='manana'?'🌅 ':'🌆 ') + a.turno_raw : (a.turno==='manana'?'🌅 Mañana':'🌆 Tarde')}</span></div>
+            <div class="popup-field"><span class="label">Horario:</span><span class="value">${a.horario_raw || '-'}</span></div>
+            <div class="popup-field"><span class="label">Licencia:</span><span class="value">${a.licencia || '-'}</span></div>
+            <div class="popup-field"><span class="label">Vigencia:</span><span class="value">${a.vigencia || '-'}</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function clearMarkers(){ for (const m of markers) m.map = null; markers = []; }
+
+    function renderMarkers(data) {
+      clearMarkers();
+      const bounds = new google.maps.LatLngBounds();
+      const hasAdvanced = !!(google.maps.marker && google.maps.marker.AdvancedMarkerElement);
+
+      data.forEach(a => {
+        const fill  = colorForGiro(a.tipo);
+        const ring  = strokeForTurno(a.turno);
+        if (hasAdvanced) {
+          const advMarker = new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: { lat: a.lat, lng: a.lng },
+            title: a.nombre,
+            content: circleSvgNode(fill, ring)
+          });
+          advMarker.addListener('gmp-click', () => {
+            infoWindow.setContent(createPopupHtml(a));
+            infoWindow.open({ anchor: advMarker, map });
+          });
+          markers.push(advMarker);
+          bounds.extend(advMarker.position);
+        } else {
+          const marker = new google.maps.Marker({
+            map,
+            position: { lat: a.lat, lng: a.lng },
+            title: a.nombre,
+            icon: circleSvgIcon(fill, ring)
+          });
+          marker.addListener('click', () => {
+            infoWindow.setContent(createPopupHtml(a));
+            infoWindow.open({ anchor: marker, map });
+          });
+          markers.push(marker);
+          bounds.extend(marker.getPosition());
+        }
+      });
+
+      if (data.length) map.fitBounds(bounds, 50);
+      else { map.setCenter(PERU_CENTER); map.setZoom(13); }
+    }
+
+    function updateStats(filtered){
+      const zonas = [...new Set(filtered.map(a => a.zona).filter(Boolean))];
+      document.getElementById('totalCount').textContent = ambulantesData.length;
+      document.getElementById('visibleCount').textContent = filtered.length;
+      document.getElementById('activeZones').textContent = zonas.length;
+    }
+
+    function updateLegendGiro(giros){
+      const cont = document.getElementById('legendItemsGiro');
+      cont.innerHTML = '';
+      giros.slice(0,20).forEach(g => {
+        const el = document.createElement('div');
+        el.className = 'legend-item';
+        el.innerHTML = `<div class="legend-color" style="background:${colorForGiro(g)}"></div><span>${g}</span>`;
+        cont.appendChild(el);
+      });
+    }
+
+    function populateGiroFilter(giros){
+      const sel = document.getElementById('giroFilter');
+      sel.innerHTML = '<option value="todos">Todos los giros</option>';
+      giros.forEach(g => {
+        const o = document.createElement('option'); o.value = g; o.textContent = g; sel.appendChild(o);
+      });
+    }
+
+    function applyFilters(){
+      const giro = document.getElementById('giroFilter').value;
+      const turno = document.getElementById('turnoFilter').value;
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      return ambulantesData.filter(a => {
+        const giroOk  = (giro==='todos')  || (String(a.tipo).toLowerCase()===String(giro).toLowerCase());
+        const turnoOk = (turno==='todos') || (a.turno===turno);
+        const qOk = !q || [a.nombre,a.productos,a.zona,a.tipo,a.direccion,a.turno_raw,a.horario_raw]
+          .some(v => String(v||'').toLowerCase().includes(q));
+        return giroOk && turnoOk && qOk;
+      });
+    }
+
+    function updateMap(){
+      const filtered = applyFilters();
+      renderMarkers(filtered);
+      updateStats(filtered);
+    }
+
+    // =================== PARSEO DE ARCHIVOS ===================
+    function rowToAmbulanteFromObj(row){
+      const n = {};
+      for (const k of Object.keys(row)) n[normalizeKey(k)] = row[k];
+
+      const { lat, lng } = parseUbicacion(n['ubicacion'] ?? n['ubicaciOn']); // 'ubicación' con o sin tilde
+
+      const turnoRaw   = n['turno'] ?? '';
+      const horarioRaw = n['horario'] ?? '';
+
+      let turnoCat = normalizeTurno(turnoRaw);
+      if (!turnoCat) turnoCat = inferTurnoDesdeHorario(horarioRaw); // siempre Mañana/Tarde
+
+      return {
+        id: Number(n['id']),
+        nombre: String(n['nombre']||'').trim(),
+        tipo: String(n['giro']||'').trim(),
+        productos: String(n['productos']||'').trim(),
+        zona: String(n['zona']||'').trim(),
+        direccion: String(n['lugar_exacto']||'').trim(),
+        lat, lng,
+        turno: turnoCat,                 // 'manana' | 'tarde'
+        turno_raw: String(turnoRaw||''), // texto original
+        horario_raw: String(horarioRaw||''),
+        licencia: String(n['licencia']||'').trim(),
+        vigencia: String(n['vigencia']||'').trim()
+      };
+    }
+
+    async function loadXlsxFromUrl(url){
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`No se pudo cargar ${url} (${resp.status})`);
+      const buf = await resp.arrayBuffer();
+      const wb = XLSX.read(buf, { type:'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+      return rows.map(rowToAmbulanteFromObj);
+    }
+
+    async function loadCsvFromUrl(url){
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`No se pudo cargar ${url} (${resp.status})`);
+      const text = await resp.text();
+      return new Promise((resolve, reject) => {
+        Papa.parse(text, {
+          header: true,
+          delimiter: ';',
+          skipEmptyLines: true,
+          complete: res => {
+            try { resolve(res.data.map(rowToAmbulanteFromObj)); }
+            catch (e){ reject(e); }
+          },
+          error: reject
+        });
+      });
+    }
+
+    async function autoLoadData(){
+      for (const name of DATA_CANDIDATES) {
+        try {
+          const lower = name.toLowerCase();
+          let parsed = [];
+          if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) parsed = await loadXlsxFromUrl(name);
+          else if (lower.endsWith('.csv')) parsed = await loadCsvFromUrl(name);
+          parsed = parsed.filter(a => Number.isFinite(a.lat) && Number.isFinite(a.lng) && a.nombre);
+          if (parsed.length) {
+            console.log(`Cargado dataset: ${name} (${parsed.length} filas válidas)`);
+            return parsed;
+          }
+        } catch (e) { console.warn(`No se pudo cargar ${name}:`, e.message); }
+      }
+      throw new Error(`No encontré ${DATA_CANDIDATES.join(' o ')} en el mismo directorio.`);
+    }
+
+    // =================== INIT ===================
+    window.initMap = async function initMap(){
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: PERU_CENTER, zoom: 13,
+        mapTypeControl:false, streetViewControl:false, fullscreenControl:true,
+        mapId: MAP_ID || undefined
+      });
+      infoWindow = new google.maps.InfoWindow();
+
+      document.getElementById('giroFilter').addEventListener('change', updateMap);
+      document.getElementById('turnoFilter').addEventListener('change', updateMap);
+      document.getElementById('searchInput').addEventListener('input', updateMap);
+
+      try {
+        ambulantesData = await autoLoadData();
+
+        const uniqueGiros = [...new Set(ambulantesData.map(a => a.tipo).filter(Boolean))]
+                            .sort((a,b)=>a.localeCompare(b,'es'));
+        populateGiroFilter(uniqueGiros);
+        updateLegendGiro(uniqueGiros);
+        updateMap();
+      } catch (err) {
+        alert(err.message + '\n\nAsegúrate de servir los archivos desde http://localhost y que el nombre sea correcto.');
+        populateGiroFilter([]); updateLegendGiro([]); updateMap();
+      }
+    };
+  </script>
+
+  <!-- Google Maps: reemplaza TU_API_KEY; si tienes MAP_ID, colócalo arriba -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker"
+    defer
+  ></script>
+</body>
+</html>
