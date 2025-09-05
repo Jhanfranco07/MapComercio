@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Negocios — Tablas por Sector</title>
+  <link rel="icon" href="/mapa.svg" type="image/svg+xml"/>
+  <style>
+    :root{
+      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#f3f4f6;
+    }
+    [data-theme="dark"]{
+      --brand:#60a5fa; --ink:#e5e7eb; --muted:#9aa4b2; --bg:#0b1220; --card:#0f172a; --ring:#1f2937; --chip:#111827;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif;transition:background .25s,color .25s}
+
+    .hero{position:sticky;top:0;z-index:10;background:radial-gradient(1200px 600px at 10% -20%,rgba(232,240,254,.7) 10%,transparent 60%),var(--card);border-bottom:1px solid var(--ring);padding:18px 16px 10px;text-align:center}
+    [data-theme="dark"] .hero{background:radial-gradient(1200px 600px at 10% -20%,rgba(37,99,235,.25) 8%,transparent 60%),var(--card)}
+    .hero h1{margin:0;font-size:22px;font-weight:800;color:var(--brand)}
+    .hero p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+    .bar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:10px 12px}
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--ring);background:#fff;font-weight:700;cursor:pointer;color:#111827}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    [data-theme="dark"] .btn{background:#0b1324;color:#e5e7eb;border-color:#223049}
+    .select, .input{padding:10px 12px;border:1px solid var(--ring);border-radius:10px;background:#fff;color:#111827;min-width:220px}
+    [data-theme="dark"] .select, [data-theme="dark"] .input{background:#0b1324;color:#e5e7eb;border-color:#223049}
+    .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .chip{background:var(--chip);border:1px solid var(--ring);padding:6px 10px;border-radius:999px;font-size:13px}
+    [data-theme="dark"] .chip{color:#e5e7eb}
+
+    .container{max-width:1200px;margin:0 auto;padding:0 12px 28px}
+    details{border:1px solid var(--ring);background:var(--card);border-radius:12px;margin:12px 0;overflow:hidden}
+    summary{list-style:none;padding:12px 14px;cursor:pointer;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+    summary::-webkit-details-marker{display:none}
+    .count{font-weight:700;color:var(--brand)}
+    .table-wrap{overflow:auto;border-top:1px solid var(--ring)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:900px}
+    thead th{position:sticky;top:0;background:var(--card);z-index:1;border-bottom:1px solid var(--ring);font-size:13px;text-align:left;padding:10px}
+    tbody td{padding:10px;border-bottom:1px solid var(--ring);font-size:13px;vertical-align:top}
+    tbody tr:nth-child(odd){background:rgba(0,0,0,0.02)}
+    [data-theme="dark"] tbody tr:nth-child(odd){background:rgba(255,255,255,0.03)}
+
+    .theme{position:fixed;right:12px;top:12px;z-index:20}
+    .ghost{background:transparent}
+    .links{display:flex;gap:8px;justify-content:center;margin:8px 0 0}
+    a.nav{font-weight:700;text-decoration:none;border:1px solid var(--ring);padding:8px 12px;border-radius:10px;background:#fff;color:#111827}
+    [data-theme="dark"] a.nav{background:#0b1324;color:#e5e7eb;border-color:#223049}
+    @media (max-width:640px){ .select{min-width:160px} }
+  </style>
+</head>
+<body>
+  <!-- Tema -->
+  <div class="theme">
+    <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span> <span id="themeText">Modo oscuro</span></button>
+  </div>
+
+  <!-- Header -->
+  <div class="hero">
+    <h1>📊 Negocios — Tablas por Sector</h1>
+    <p>Distrito de <b>Pachacámac</b> — agrupado por <b>Sector</b> (si no existe, se usa <b>Zona</b>)</p>
+    <div class="links">
+      <a class="nav" href="./index.html">🗺️ Ir al mapa</a>
+    </div>
+  </div>
+
+  <!-- Filtros + acciones -->
+  <div class="bar">
+    <select id="sectorFilter" class="select">
+      <option value="todos">Todos los sectores</option>
+    </select>
+    <button id="expandAll" class="btn">➕ Expandir todo</button>
+    <button id="collapseAll" class="btn">➖ Contraer todo</button>
+    <button id="exportCsv" class="btn">⬇️ Exportar CSV</button>
+    <button id="exportXlsx" class="btn primary">⬇️ Exportar XLSX</button>
+  </div>
+  <div class="chips">
+    <span class="chip">📦 Total filas: <b id="totalRows">0</b></span>
+    <span class="chip">🗂️ Sectores: <b id="totalSectors">0</b></span>
+  </div>
+
+  <div class="container" id="tablesContainer">
+    <!-- Aquí se inyectan las tablas -->
+  </div>
+
+  <!-- Librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    /* ===== Config ===== */
+    const DATA_CANDIDATES = [
+      "ambulantes_actualizado.xlsx","ambulantes_actualizado.csv",
+      "ambulantes.xlsx","ambulantes.csv"
+    ];
+
+    /* ===== Tema ===== */
+    const theme = () => document.documentElement.getAttribute('data-theme') || 'light';
+    function applyThemeUI(th){
+      const icon = document.getElementById('themeIcon');
+      const text = document.getElementById('themeText');
+      if(th==='dark'){ icon.textContent='☀️'; text.textContent='Modo claro'; }
+      else { icon.textContent='🌙'; text.textContent='Modo oscuro'; }
+    }
+    function setTheme(th){
+      document.documentElement.setAttribute('data-theme', th);
+      localStorage.setItem('prefers-theme', th);
+      applyThemeUI(th);
+    }
+    (function initTheme(){
+      const saved = localStorage.getItem('prefers-theme');
+      setTheme(saved || 'light');
+      document.getElementById('themeToggle').addEventListener('click', ()=>{
+        setTheme(theme()==='dark' ? 'light' : 'dark');
+      });
+    })();
+
+    /* ===== Utils ===== */
+    const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
+    function parseUbic(val){
+      if(!val) return {lat:null,lng:null};
+      const txt=String(val).replace(/\s+/g,''); const [la,ln]=txt.split(',');
+      const lat=parseFloat(la), lng=parseFloat(ln);
+      return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null};
+    }
+
+    /* ===== Estado ===== */
+    let allRows = [];      // filas crudas normalizadas
+    let bySector = {};     // {sector: filas[]}
+    let sectorList = [];   // lista de sectores únicos
+
+    /* ===== Carga de datos ===== */
+    async function loadFromUrl(name){
+      const resp = await fetch(name);
+      if(!resp.ok) throw new Error('No se pudo cargar '+name);
+      const low = name.toLowerCase();
+      if(low.endsWith('.xlsx')||low.endsWith('.xls')){
+        const wb = XLSX.read(await resp.arrayBuffer(),{type:'array'});
+        const sh = wb.Sheets[wb.SheetNames[0]];
+        return XLSX.utils.sheet_to_json(sh,{defval:''});
+      }else{
+        const text = await resp.text();
+        return new Promise((res,rej)=>Papa.parse(text,{header:true,delimiter:text.includes(';')?';':',',skipEmptyLines:true,complete:o=>res(o.data),error:rej}));
+      }
+    }
+    async function autoLoad(){
+      for(const n of DATA_CANDIDATES){
+        try{ return await loadFromUrl(n); } catch(_){}
+      }
+      throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
+    }
+
+    function normalizeRows(rows){
+      const out=[];
+      for(const row of rows){
+        const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)] = row[k];
+        // coords
+        let lat = parseFloat(n['lat']), lng = parseFloat(n['lng']);
+        if(!Number.isFinite(lat)||!Number.isFinite(lng)){
+          const p = parseUbic(n['ubicacion'] ?? n['ubicaciOn']); lat=p.lat; lng=p.lng;
+        }
+        // sector fallback
+        const sector = String(n['sector'] ?? n['zona'] ?? 'Sin sector').trim();
+        out.push({
+          id: String(n['id']??'').trim(),
+          nombre: String(n['nombre']??'').trim(),
+          giro: String(n['giro']??'').trim(),
+          productos: String(n['productos']??'').trim(),
+          zona: String(n['zona']??'').trim(),
+          sector,
+          lugar_exacto: String(n['lugar_exacto']??'').trim(),
+          horario: String(n['horario']??'').trim(),
+          licencia: String(n['licencia']??'').trim(),
+          vigencia: String(n['vigencia']??'').trim(),
+          turno: String(n['turno']??'').trim(),
+          lat, lng
+        });
+      }
+      return out;
+    }
+
+    function groupBySector(rows){
+      const map = {};
+      for(const r of rows){
+        const k = r.sector || 'Sin sector';
+        if(!map[k]) map[k]=[];
+        map[k].push(r);
+      }
+      return map;
+    }
+
+    /* ===== UI ===== */
+    function setCounters(){
+      document.getElementById('totalRows').textContent = allRows.length;
+      document.getElementById('totalSectors').textContent = sectorList.length;
+    }
+
+    function buildSectorFilter(){
+      const sel = document.getElementById('sectorFilter');
+      sel.innerHTML = '<option value="todos">Todos los sectores</option>';
+      sectorList.forEach(s=>{
+        const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o);
+      });
+      sel.addEventListener('change', renderTables);
+    }
+
+    function tableHead(){
+      return `
+        <thead>
+          <tr>
+            <th>ID</th><th>Nombre</th><th>Giro</th><th>Productos</th>
+            <th>Zona</th><th>Lugar exacto</th><th>Turno</th><th>Horario</th>
+            <th>Licencia</th><th>Vigencia</th><th>Lat</th><th>Lng</th>
+          </tr>
+        </thead>`;
+    }
+    function rowHtml(r){
+      const f = v => (v==null||v==='') ? '' : String(v);
+      return `<tr>
+        <td>${f(r.id)}</td>
+        <td>${f(r.nombre)}</td>
+        <td>${f(r.giro)}</td>
+        <td>${f(r.productos)}</td>
+        <td>${f(r.zona)}</td>
+        <td>${f(r.lugar_exacto)}</td>
+        <td>${f(r.turno)}</td>
+        <td>${f(r.horario)}</td>
+        <td>${f(r.licencia)}</td>
+        <td>${f(r.vigencia)}</td>
+        <td>${Number.isFinite(r.lat)?r.lat:''}</td>
+        <td>${Number.isFinite(r.lng)?r.lng:''}</td>
+      </tr>`;
+    }
+
+    function getVisibleData(){
+      const sel = document.getElementById('sectorFilter').value;
+      if(sel==='todos') return allRows;
+      return bySector[sel] || [];
+    }
+
+    function renderTables(){
+      const cont = document.getElementById('tablesContainer');
+      cont.innerHTML = '';
+      const sel = document.getElementById('sectorFilter').value;
+
+      const sectors = (sel==='todos') ? sectorList : [sel];
+      sectors.forEach(sec=>{
+        const rows = bySector[sec] || [];
+        const det = document.createElement('details');
+        det.open = true;
+        det.innerHTML = `
+          <summary>${sec} <span class="count">(${rows.length})</span></summary>
+          <div class="table-wrap">
+            <table>
+              ${tableHead()}
+              <tbody>
+                ${rows.map(rowHtml).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        cont.appendChild(det);
+      });
+    }
+
+    /* ===== Export ===== */
+    function exportCSV(){
+      const data = getVisibleData();
+      if(!data.length) return;
+      const headers = ['id','nombre','giro','productos','zona','sector','lugar_exacto','turno','horario','licencia','vigencia','lat','lng'];
+      const lines = [];
+      lines.push(headers.join(';'));
+      data.forEach(r=>{
+        const vals = headers.map(h=>{
+          const v = r[h] ?? '';
+          const s = String(v).replace(/"/g,'""');
+          return /[;\n"]/.test(s) ? `"${s}"` : s;
+        });
+        lines.push(vals.join(';'));
+      });
+      const csv = '\uFEFF' + lines.join('\n'); // BOM para Excel
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      const sel = document.getElementById('sectorFilter').value;
+      a.download = `negocios_${sel==='todos'?'todos':sel}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function exportXLSX(){
+      const data = getVisibleData();
+      if(!data.length) return;
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Negocios');
+      const sel = document.getElementById('sectorFilter').value;
+      XLSX.writeFile(wb, `negocios_${sel==='todos'?'todos':sel}.xlsx`);
+    }
+
+    /* ===== Expand/Collapse ===== */
+    function expandAll(){ document.querySelectorAll('#tablesContainer details').forEach(d=>d.open=true); }
+    function collapseAll(){ document.querySelectorAll('#tablesContainer details').forEach(d=>d.open=false); }
+
+    /* ===== Init ===== */
+    (async function(){
+      try{
+        const raw = await autoLoad();
+        allRows = normalizeRows(raw);
+        bySector = groupBySector(allRows);
+        sectorList = Object.keys(bySector).sort((a,b)=>a.localeCompare(b,'es'));
+        setCounters();
+        buildSectorFilter();
+        renderTables();
+
+        document.getElementById('expandAll').addEventListener('click', expandAll);
+        document.getElementById('collapseAll').addEventListener('click', collapseAll);
+        document.getElementById('exportCsv').addEventListener('click', exportCSV);
+        document.getElementById('exportXlsx').addEventListener('click', exportXLSX);
+      }catch(e){
+        alert(e.message);
+      }
+    })();
+  </script>
+</body>
+</html>
