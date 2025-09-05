@@ -26,9 +26,7 @@
       border-bottom:1px solid var(--ring); padding:16px 12px 10px;
       display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;
     }
-    [data-theme="dark"] .hero{
-      background: radial-gradient(1200px 600px at 10% -20%, rgba(37,99,235,.25) 8%, transparent 60%), var(--card);
-    }
+    [data-theme="dark"] .hero{ background: radial-gradient(1200px 600px at 10% -20%, rgba(37,99,235,.25) 8%, transparent 60%), var(--card); }
     .hero h1{margin:0; font-size:20px; font-weight:800; color:var(--brand)}
     .hero p{margin:0; color:var(--muted); font-size:13px}
     .top-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
@@ -75,9 +73,11 @@
     }
     [data-theme="dark"] .export{ background:linear-gradient(180deg, rgba(11,18,32,.85), rgba(15,23,42,.95)); }
 
-    .fab-panel{position:fixed; right:16px; bottom:calc(var(--export-h) + var(--fab-gap)); display:flex; flex-direction:column; gap:8px; z-index:9000}
+    .fab-panel{position:fixed; right:16px; bottom:calc(var(--export-h) + var(--fab-gap)); display:flex; flex-direction:column; gap:8px; z-index:9000; width:min(460px, 92vw)}
     .fab{background:#fff; border:1px solid var(--ring); border-radius:10px; padding:8px 10px; font-weight:600; cursor:pointer}
     [data-theme="dark"] .fab{ background:#0b1324; color:#e5e7eb; border-color:#223049 }
+    .fab:focus{outline:none; box-shadow:0 0 0 3px rgba(26,115,232,.18)}
+    #personSelect{max-height:360px; overflow:auto}
 
     .toast{position:fixed; right:16px; top:16px; z-index:9999; background:#0ea5e9; color:#fff; border-radius:12px; padding:10px 14px; font-size:13px; opacity:0; transform:translateY(-8px); transition:.25s}
     .toast.show{opacity:1; transform:none}
@@ -124,13 +124,9 @@
 
   <div id="map"></div>
 
-  <!-- Panel de edición con subfiltro -->
+  <!-- Panel de edición con subfiltro (siempre filtra por sector seleccionado) -->
   <div class="fab-panel" id="editPanel" style="display:none">
-    <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o Nombre… (Enter para seleccionar licencia exacta)"/>
-    <label class="fab" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="editorOnlySector" checked/>
-      Solo sector actual
-    </label>
+    <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o Nombre… (Enter para licencia exacta)"/>
     <select id="personSelect" class="fab" title="Selecciona negocio…">
       <option value="">Selecciona negocio…</option>
     </select>
@@ -158,7 +154,7 @@
 
   <script>
     /* ===== Config ===== */
-    const DATA_CANDIDATES = ["negocios.xlsx","negocios.csv"]; // tus archivos
+    const DATA_CANDIDATES = ["negocios.xlsx","negocios.csv"];
     const MAP_ID_LIGHT = "TU_MAP_ID_CLARO";
     const MAP_ID_DARK  = "TU_MAP_ID_OSCURO";
     const CENTER = { lat: -12.155, lng: -76.870 };
@@ -173,13 +169,25 @@
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
     const esc = t => String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const theme = () => document.documentElement.getAttribute('data-theme') || 'light';
-
     const colorByHash = (txt)=>{ let h=0; const s=String(txt||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; const hue=h%360; return `hsl(${hue} 70% 50%)`; };
     const strokeForTheme = () => theme()==='dark' ? '#cbd5e1' : '#111827';
-
     function toast(msg, ok=true){ const el=document.getElementById('toast'); el.textContent=msg; el.style.background=ok?'#0ea5e9':'#ef4444'; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
     function adjustFabOffset(){ const h=(document.getElementById('exportBar')?.offsetHeight||56); document.documentElement.style.setProperty('--export-h', h+'px'); }
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
+
+    /* === helpers robustos para encabezados === */
+    const findKey = (obj, tokens) => {
+      const keys = Object.keys(obj);
+      const ok = k => tokens.every(t => k.includes(t));
+      return keys.find(k => ok(k)) || '';
+    };
+    const pick = (obj, keys, tokens=[]) => {
+      for(const k of keys){ if(obj[k] != null) return obj[k]; }
+      if(tokens.length){ const fk = findKey(obj, tokens); if(fk) return obj[fk]; }
+      return '';
+    };
+
+    const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
 
     /* ===== Map ===== */
     function svgIcon(fill, stroke){
@@ -193,7 +201,7 @@
       return `
         <div style="min-width:260px;max-width:380px;font-family:inherit">
           <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:6px 6px 0 0;margin:-8px -8px 8px -8px;font-weight:700">
-            ${esc(a.nombre_comercial || a.titular || '—')}
+            ${esc(displayName(a) || '—')}
           </div>
           <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
           <div><b>Periodo:</b> ${esc(a.periodo||'-')}</div>
@@ -220,16 +228,17 @@
             <circle cx="14" cy="14" r="11" fill="${fill}" />
             <circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" />
           </svg>`;
-          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:a.nombre_comercial||a.titular,content:node});
+          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a),content:node});
           mk.addListener('gmp-click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.position);
         }else{
-          const mk=new google.maps.Marker({map,position:pos,title:a.nombre_comercial||a.titular,icon:svgIcon(fill,ring)});
-          mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
+          const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
+          mk.addEventListener?.('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
+          mk.addListener?.('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
       });
-      if(data.filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)).length) map.fitBounds(bounds, 60); else { map.setCenter(CENTER); map.setZoom(13); }
+      if(data.some(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng))) map.fitBounds(bounds, 60); else { map.setCenter(CENTER); map.setZoom(13); }
     }
 
     /* ===== Filtros ===== */
@@ -240,7 +249,7 @@
       const q=document.getElementById('searchInput').value.trim().toLowerCase();
       return allData.filter(a=>{
         const sOk = (sector==='todos') || (String(a.sector).toLowerCase()===String(sector).toLowerCase());
-        const qOk = !q || [a.nombre_comercial,a.titular,a.giro,a.dir,a.sector].some(v=>String(v||'').toLowerCase().includes(q));
+        const qOk = !q || [a.nombre_comercial,a.titular,a.giro,a.dir,a.sector,a.licencia].some(v=>String(v||'').toLowerCase().includes(q));
         return sOk && qOk;
       });
     }
@@ -255,7 +264,12 @@
       const sel=document.getElementById('sectorFilter'); sel.innerHTML='<option value="todos">Todos</option>';
       sectores.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
     }
-    function refresh(){ const f=applyFilters(); renderMarkers(f); updateStats(f); if(document.getElementById('editorOnlySector').checked){ rebuildPersonSelect(lastEditorFilter); } }
+    function refresh(){
+      const f=applyFilters();
+      renderMarkers(f);
+      updateStats(f);
+      if (editMode) rebuildPersonSelect(lastEditorFilter); // siempre respeta sector actual
+    }
 
     /* ===== Carga datos ===== */
     async function loadFromUrl(name){
@@ -274,29 +288,40 @@
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
     function normRows(rows){
-      const out=[]; let idx=0;
+      const out=[]; let i=0;
       for(const row of rows){
         const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)]=row[k];
-        const id = String(n['licencia']||(++idx));
-        const licencia = String(n['licencia']||'').trim();
-        const periodo  = String(n['periodo']||'').trim();
-        const titular  = String(n['apellidos_y_nombres_/_razon_social']||n['apellidos_y_nombres_razon_social']||n['razon_social']||'').trim();
-        const ruc      = String(n['r_u_c_']||n['ruc']||n['r.u.c.']||'').trim();
-        const dir      = String(n['direccion_del_establecimiento_comercial']||n['direccion']||'').trim();
-        const num      = String(n['n°']||n['n']||'').trim();
-        const mz       = String(n['mz.']||n['mz']||'').trim();
-        const lt       = String(n['lt.']||n['lt']||'').trim();
-        const sector   = String(n['sector']||'').trim();
-        const giro     = String(n['giro_del_establecimiento']||n['giro']||'').trim();
-        const nombreCom= String(n['nombre_comercial']||'').trim();
 
-        let lat = parseFloat(n['lat']);
-        let lng = parseFloat(n['long']||n['lng']);
+        const licencia = String(pick(n, ['licencia'], ['licencia'])).trim();
+        const periodo  = String(pick(n, ['periodo'], ['periodo'])).trim();
+        const titular  = String(pick(n, [
+          'apellidos_y_nombres_/_razon_social',
+          'apellidos_y_nombres/_razon_social',
+          'apellidos_y_nombres_razon_social',
+          'apellidos_y_nombres',
+          'razon_social','titular','nombres_y_apellidos'
+        ], ['apellidos','nombres','razon','social'])).trim();
+        const ruc      = String(pick(n, ['r_u_c_','ruc','r.u.c.','r_u_c'], ['r','u','c'])).trim();
+        const dir      = String(pick(n, ['direccion_del_establecimiento_comercial','direccion'], ['direccion','establecimiento','comercial'])).trim();
+        const num      = String(pick(n, ['n°','n','numero'], ['n'])).trim();
+        const mz       = String(pick(n, ['mz.','mz'], ['mz'])).trim();
+        const lt       = String(pick(n, ['lt.','lt'], ['lt'])).trim();
+        const sector   = String(pick(n, ['sector'], ['sector'])).trim();
+        const giro     = String(pick(n, ['giro_del_establecimiento','giro'], ['giro'])).trim();
+        const nombreCom= String(pick(n, ['nombre_comercial'], ['nombre','comercial'])).trim();
+
+        let lat = parseFloat(pick(n, ['lat'], ['lat']));
+        let lng = parseFloat(pick(n, ['long','lng'], ['long','lng']));
         if(!Number.isFinite(lat)||!Number.isFinite(lng)){
-          const p=parseUbicacion(n['ubicacion']); lat=p.lat; lng=p.lng;
+          const p=parseUbicacion(pick(n, ['ubicacion'], ['ubicacion'])); lat=p.lat; lng=p.lng;
         }
 
-        out.push({ id, licencia, periodo, titular, ruc, dir, num, mz, lt, sector, giro, nombre_comercial:nombreCom, lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null });
+        out.push({
+          id: licencia || String(++i),
+          licencia, periodo, titular, ruc, dir, num, mz, lt, sector, giro,
+          nombre_comercial:nombreCom,
+          lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null
+        });
       }
       return out;
     }
@@ -309,11 +334,8 @@
         const col=colorByHash(a.giro||a.sector||'N');
         return `
           <Placemark>
-            <name>${esc(a.nombre_comercial || a.titular)}</name>
-            <Style>
-              <IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle>
-              <LabelStyle><scale>0.0</scale></LabelStyle>
-            </Style>
+            <name>${esc(displayName(a))}</name>
+            <Style><IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle><LabelStyle><scale>0.0</scale></LabelStyle></Style>
             <description><![CDATA[
               <b>Licencia:</b> ${esc(a.licencia)}<br/>
               <b>Periodo:</b> ${esc(a.periodo)}<br/>
@@ -342,44 +364,38 @@
     const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
     function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
 
-    /* ===== Editor (con subfiltro) ===== */
+    /* ===== Editor ===== */
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
 
     function rebuildPersonSelect(filterText=""){
       lastEditorFilter = filterText;
-      const onlySector = document.getElementById('editorOnlySector').checked;
       const sectorNow = currentSector();
       const sel=document.getElementById('personSelect');
 
-      // normalizamos filtro
-      const f = filterText.trim().toLowerCase();
-
-      // orden: primero sin ubicación, luego con
+      // filtra SIEMPRE por sector seleccionado (si es "todos", muestra todo)
       let entries = allData.slice();
-
-      // limitar por sector actual si se pide
-      if (onlySector && sectorNow !== 'todos') {
+      if (sectorNow !== 'todos') {
         entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
       }
 
-      // aplicar subfiltro por licencia o nombre
+      const f = filterText.trim().toLowerCase();
       if (f) {
         entries = entries.filter(a => {
           const licencia = String(a.licencia||'').toLowerCase();
-          const nombre   = String(a.nombre_comercial || a.titular || '').toLowerCase();
+          const nombre   = String(displayName(a)||'').toLowerCase();
           return licencia.includes(f) || nombre.includes(f);
         });
       }
 
-      entries.sort((a,b)=> (a.nombre_comercial||a.titular||'').localeCompare(b.nombre_comercial||b.titular||'','es'));
+      entries.sort((a,b)=> displayName(a).localeCompare(displayName(b),'es'));
 
       const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
       const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
 
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${a.nombre_comercial||a.titular||a.licencia}`; g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${a.nombre_comercial||a.titular||a.licencia}`; g.appendChild(o); }); sel.appendChild(g); }
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
     }
 
     function enableAssignMode(){
@@ -435,8 +451,11 @@
       // Tema toggle
       document.getElementById('themeToggle').addEventListener('click', ()=>{ setTheme(theme()==='dark'?'light':'dark'); });
 
-      // Filtros
-      document.getElementById('sectorFilter').addEventListener('change', refresh);
+      // Filtros principales
+      document.getElementById('sectorFilter').addEventListener('change', ()=>{
+        refresh();
+        if (editMode) rebuildPersonSelect(lastEditorFilter); // fuerza re-lista por sector
+      });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
       // Editor
@@ -446,18 +465,14 @@
         if(editMode){ rebuildPersonSelect(lastEditorFilter); }
       });
 
-      document.getElementById('editorOnlySector').addEventListener('change', ()=>rebuildPersonSelect(lastEditorFilter));
-
-      // Subfiltro del editor (con Enter selecciona licencia exacta)
+      // Subfiltro del editor
       const editorInput = document.getElementById('editorFilter');
-      editorInput.addEventListener('input', (e)=>{
-        const v=e.target.value||''; rebuildPersonSelect(v);
-      });
+      editorInput.addEventListener('input', (e)=>{ rebuildPersonSelect(e.target.value||''); });
       editorInput.addEventListener('keydown', (e)=>{
         if(e.key==='Enter'){
           const lic = (e.target.value||'').trim();
           if(!lic) return;
-          const rec = allData.find(a => String(a.licencia).toLowerCase() === lic.toLowerCase());
+          const rec = allData.find(a => String(a.licencia||'').toLowerCase() === lic.toLowerCase());
           if(rec){
             selectedId = String(rec.id);
             document.getElementById('personSelect').value = selectedId;
@@ -508,10 +523,13 @@
 
 
 
+
+
    <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
