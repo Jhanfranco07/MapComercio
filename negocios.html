@@ -124,8 +124,13 @@
 
   <div id="map"></div>
 
-  <!-- Editor / FABs -->
+  <!-- Panel de edición con subfiltro -->
   <div class="fab-panel" id="editPanel" style="display:none">
+    <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o Nombre… (Enter para seleccionar licencia exacta)"/>
+    <label class="fab" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="editorOnlySector" checked/>
+      Solo sector actual
+    </label>
     <select id="personSelect" class="fab" title="Selecciona negocio…">
       <option value="">Selecciona negocio…</option>
     </select>
@@ -162,6 +167,7 @@
     let map, infoWindow, markers=[];
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
+    let lastEditorFilter = "";
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -219,7 +225,7 @@
           markers.push(mk); bounds.extend(mk.position);
         }else{
           const mk=new google.maps.Marker({map,position:pos,title:a.nombre_comercial||a.titular,icon:svgIcon(fill,ring)});
-          mk.addEventListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
+          mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
       });
@@ -227,8 +233,10 @@
     }
 
     /* ===== Filtros ===== */
+    const currentSector = () => document.getElementById('sectorFilter').value;
+
     function applyFilters(){
-      const sector=document.getElementById('sectorFilter').value;
+      const sector=currentSector();
       const q=document.getElementById('searchInput').value.trim().toLowerCase();
       return allData.filter(a=>{
         const sOk = (sector==='todos') || (String(a.sector).toLowerCase()===String(sector).toLowerCase());
@@ -247,7 +255,7 @@
       const sel=document.getElementById('sectorFilter'); sel.innerHTML='<option value="todos">Todos</option>';
       sectores.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
     }
-    function refresh(){ const f=applyFilters(); renderMarkers(f); updateStats(f); }
+    function refresh(){ const f=applyFilters(); renderMarkers(f); updateStats(f); if(document.getElementById('editorOnlySector').checked){ rebuildPersonSelect(lastEditorFilter); } }
 
     /* ===== Carga datos ===== */
     async function loadFromUrl(name){
@@ -266,11 +274,9 @@
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
     function normRows(rows){
-      const out=[];
-      let idx=0;
+      const out=[]; let idx=0;
       for(const row of rows){
         const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)]=row[k];
-        // mapeo a tus campos
         const id = String(n['licencia']||(++idx));
         const licencia = String(n['licencia']||'').trim();
         const periodo  = String(n['periodo']||'').trim();
@@ -336,18 +342,46 @@
     const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
     function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
 
-    /* ===== Editor ===== */
+    /* ===== Editor (con subfiltro) ===== */
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
-    function rebuildPersonSelect(){
+
+    function rebuildPersonSelect(filterText=""){
+      lastEditorFilter = filterText;
+      const onlySector = document.getElementById('editorOnlySector').checked;
+      const sectorNow = currentSector();
       const sel=document.getElementById('personSelect');
-      const entries=allData.slice().sort((a,b)=> (a.nombre_comercial||a.titular||'').localeCompare(b.nombre_comercial||b.titular||'','es'));
+
+      // normalizamos filtro
+      const f = filterText.trim().toLowerCase();
+
+      // orden: primero sin ubicación, luego con
+      let entries = allData.slice();
+
+      // limitar por sector actual si se pide
+      if (onlySector && sectorNow !== 'todos') {
+        entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
+      }
+
+      // aplicar subfiltro por licencia o nombre
+      if (f) {
+        entries = entries.filter(a => {
+          const licencia = String(a.licencia||'').toLowerCase();
+          const nombre   = String(a.nombre_comercial || a.titular || '').toLowerCase();
+          return licencia.includes(f) || nombre.includes(f);
+        });
+      }
+
+      entries.sort((a,b)=> (a.nombre_comercial||a.titular||'').localeCompare(b.nombre_comercial||b.titular||'','es'));
+
       const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
       const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
+
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label='Sin ubicación'; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent='❌ '+(a.nombre_comercial||a.titular||a.licencia); g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label='Con ubicación'; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent='✅ '+(a.nombre_comercial||a.titular||a.licencia); g.appendChild(o); }); sel.appendChild(g); }
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${a.nombre_comercial||a.titular||a.licencia}`; g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${a.nombre_comercial||a.titular||a.licencia}`; g.appendChild(o); }); sel.appendChild(g); }
     }
+
     function enableAssignMode(){
       if(assignMode) return;
       if(!selectedId){ alert('Selecciona un negocio.'); return; }
@@ -357,32 +391,20 @@
         const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
         assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
         if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
-        rebuildPersonSelect(); document.getElementById('personSelect').value=String(rec.id);
+        rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
         refresh();
       });
     }
     function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
-    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(); document.getElementById('personSelect').value=String(r.id); refresh(); }
+    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
 
     function toExportRows(){
-      // mantiene TUS encabezados exactos
-      return allData.map(a=>{
-        return {
-          'LICENCIA': a.licencia||'',
-          'PERIODO': a.periodo||'',
-          'APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
-          'R.U.C.': a.ruc||'',
-          'DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'',
-          'N°': a.num||'',
-          'MZ.': a.mz||'',
-          'LT.': a.lt||'',
-          'SECTOR': a.sector||'',
-          'GIRO DEL ESTABLECIMIENTO': a.giro||'',
-          'NOMBRE COMERCIAL': a.nombre_comercial||'',
-          'Lat': Number.isFinite(a.lat)?a.lat:'',
-          'Long': Number.isFinite(a.lng)?a.lng:''
-        };
-      });
+      return allData.map(a=>({
+        'LICENCIA': a.licencia||'','PERIODO': a.periodo||'','APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
+        'R.U.C.': a.ruc||'','DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'','N°': a.num||'','MZ.': a.mz||'','LT.': a.lt||'',
+        'SECTOR': a.sector||'','GIRO DEL ESTABLECIMIENTO': a.giro||'','NOMBRE COMERCIAL': a.nombre_comercial||'',
+        'Lat': Number.isFinite(a.lat)?a.lat:'','Long': Number.isFinite(a.lng)?a.lng:''
+      }));
     }
     function downloadXlsx(){
       const rows=toExportRows();
@@ -421,7 +443,30 @@
       document.getElementById('toggleEdit').addEventListener('click', ()=>{
         editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none';
         if(!editMode && assignMode && mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; assignMode=false; document.body.style.cursor='default'; }
+        if(editMode){ rebuildPersonSelect(lastEditorFilter); }
       });
+
+      document.getElementById('editorOnlySector').addEventListener('change', ()=>rebuildPersonSelect(lastEditorFilter));
+
+      // Subfiltro del editor (con Enter selecciona licencia exacta)
+      const editorInput = document.getElementById('editorFilter');
+      editorInput.addEventListener('input', (e)=>{
+        const v=e.target.value||''; rebuildPersonSelect(v);
+      });
+      editorInput.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){
+          const lic = (e.target.value||'').trim();
+          if(!lic) return;
+          const rec = allData.find(a => String(a.licencia).toLowerCase() === lic.toLowerCase());
+          if(rec){
+            selectedId = String(rec.id);
+            document.getElementById('personSelect').value = selectedId;
+            setCoordPreview(rec.lat, rec.lng);
+            toast(`Seleccionado: Lic. ${rec.licencia}`);
+          }
+        }
+      });
+
       document.getElementById('personSelect').addEventListener('change', (e)=>{ selectedId=e.target.value||''; const rec=getSelectedRecord(); if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng); else setCoordPreview(null,null); });
       document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
       document.getElementById('btnCenter').addEventListener('click', centerOnSelected);
@@ -452,7 +497,7 @@
         const {rows, filename}=await autoLoad();
         allData = normRows(rows);
         populateFilters();
-        rebuildPersonSelect();
+        rebuildPersonSelect('');
         refresh();
         toast(`Dataset: ${filename} (${allData.length} filas)`);
       }catch(err){ toast(err.message, false); }
@@ -461,10 +506,13 @@
 
 
 
+
+
    <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
