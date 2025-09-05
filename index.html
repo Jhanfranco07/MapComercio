@@ -56,7 +56,7 @@
     .fade-in{animation:fade .5s ease-out both}
     @keyframes fade {from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none}}
 
-    /* ====== Botón de tema (fix superposición) ====== */
+    /* ====== Botón de tema ====== */
     .theme{
       position: fixed;
       right: 16px;
@@ -111,6 +111,10 @@
       position: relative;
     }
 
+    /* ====== Editor de ubicaciones ====== */
+    .editor{ margin:8px 12px; }
+    .coord{font-size:13px;color:var(--muted)}
+
     /* ====== Leyendas ====== */
     .legend-dock{
       position:relative; background:var(--card);
@@ -132,7 +136,7 @@
     [data-theme="dark"] .legend-dot{ box-shadow:0 0 0 2px #0b1324, 0 1px 0 rgba(0,0,0,.4) }
     .legend-ring{width:14px;height:14px;border-radius:999px;background:#fff;border:3px solid #000;box-shadow:0 1px 0 rgba(0,0,0,.1)}
 
-    /* ====== FABs (siempre visibles, sin solaparse con export) ====== */
+    /* ====== FABs ====== */
     .map-fabs{
       position: fixed;
       right: 16px;
@@ -193,7 +197,7 @@
     @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
     .marker-node.pulse svg{ animation: pulse .45s ease-in-out 1; }
 
-    /* ====== InfoWindow dark (opción B) ====== */
+    /* ====== InfoWindow dark ====== */
     [data-theme="dark"] .gm-style .gm-style-iw-c{
       background:#0b1324 !important; color:#e5e7eb !important; border-radius:12px;
     }
@@ -204,6 +208,7 @@
     /* ====== Responsive ====== */
     @media (max-width: 640px){
       .controls{ margin:8px 8px }
+      .editor{ margin:8px 8px }
       .stats{ padding:0 8px 8px 8px }
       .theme{ right: 10px; top: 10px }
       .map-fabs{ right: 12px }
@@ -252,7 +257,25 @@
   <!-- Mapa -->
   <div id="map" class="fade-in" style="animation-delay:.08s"></div>
 
-  <!-- FABs (fijos, evitan solaparse con export) -->
+  <!-- Editor de ubicaciones -->
+  <div class="controls editor">
+    <div class="group" style="min-width:300px;flex:1">
+      <label>🧭 Editor de ubicaciones</label>
+      <select id="personSelect" style="min-width:260px;flex:1">
+        <option value="">Selecciona una persona…</option>
+      </select>
+    </div>
+    <div class="group">
+      <button id="btnAssign" class="btn primary">📌 Asignar en el mapa</button>
+      <button id="btnCenter" class="btn">🎯 Centrar</button>
+      <button id="btnClear" class="btn">🗑️ Quitar ubic.</button>
+    </div>
+    <div class="group coord">
+      <span id="coordPreview">Lat: — , Lng: —</span>
+    </div>
+  </div>
+
+  <!-- FABs -->
   <div class="map-fabs">
     <button class="fab" id="btnReset">↺ Reset filtros</button>
     <button class="fab" id="btnLoc">📍 Mi ubicación</button>
@@ -276,9 +299,11 @@
   <!-- Export -->
   <div class="export" id="exportBar">
     <label><input type="checkbox" id="onlyVisible"> Exportar solo visibles</label>
-    <button id="btnKml" class="btn" disabled>⬇️ Descargar KML</button>
-    <button id="btnKmz" class="btn primary" disabled>⬇️ Descargar KMZ</button>
-    <span class="note-inline">• Para Google Earth, usa <b>KMZ</b> (comprime y empaqueta iconos). Usa <b>KML</b> si editarás el XML.</span>
+    <button id="btnKml"  class="btn">⬇️ Descargar KML</button>
+    <button id="btnKmz"  class="btn primary">⬇️ Descargar KMZ</button>
+    <button id="btnXlsx" class="btn">💾 Dataset XLSX</button>
+    <button id="btnCsv"  class="btn">⬇️ Dataset CSV</button>
+    <span class="note-inline">• Para Google Earth, usa <b>KMZ</b>. Para editar datos, descarga <b>XLSX/CSV</b>.</span>
     <div style="flex:1"></div>
   </div>
 
@@ -303,6 +328,9 @@
     /* ==================== Estado ==================== */
     let map, infoWindow, markers=[];
     let allData=[];
+    let assignMode = false;
+    let mapClickListener = null;
+    let selectedId = "";
 
     /* ==================== Utils ==================== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -317,7 +345,6 @@
       setTimeout(()=>el.classList.remove('show'), 2300);
     }
 
-    // Ajusta la variable CSS --export-h según la barra real
     function adjustFabOffset(){
       const bar = document.getElementById('exportBar');
       const h = (bar?.offsetHeight || 64);
@@ -337,7 +364,7 @@
       return '';
     }
 
-
+    /* ===== Colores por giro ===== */
     const normGiro = g => String(g||'').trim().toLowerCase();
     const OVERRIDE_COLORS = { 'asedipa': '#22c55e' };
     const PALETTE_HEX = [
@@ -478,8 +505,93 @@
       const filtered = applyFilters();
       renderMarkers(filtered);
       updateStats(filtered);
-      document.getElementById('btnKml').disabled = allData.length===0;
-      document.getElementById('btnKmz').disabled = allData.length===0;
+    }
+
+    /* ==================== Editor de ubicaciones ==================== */
+    function getSelectedRecord(){
+      const id = parseInt(selectedId, 10);
+      if (!id) return null;
+      return allData.find(a => parseInt(a.id,10) === id) || null;
+    }
+    function setCoordPreview(lat, lng){
+      const el = document.getElementById('coordPreview');
+      el.textContent = Number.isFinite(lat) && Number.isFinite(lng)
+        ? `Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`
+        : 'Lat: — , Lng: —';
+    }
+    function rebuildPersonSelect(){
+      const sel = document.getElementById('personSelect');
+      const entries = allData.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+      sel.innerHTML = '<option value="">Selecciona una persona…</option>';
+
+      const sinUbic = entries.filter(a => !(Number.isFinite(a.lat) && Number.isFinite(a.lng)));
+      const conUbic = entries.filter(a =>  (Number.isFinite(a.lat) && Number.isFinite(a.lng)));
+
+      const mkOpt = (a, tiene) => {
+        const tag = tiene ? '✅' : '❌';
+        const txt = `${tag} ${a.nombre} — ${a.giro || '—'}`;
+        const opt = document.createElement('option');
+        opt.value = String(a.id);
+        opt.textContent = txt;
+        return opt;
+      };
+
+      if (sinUbic.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Sin ubicación';
+        sinUbic.forEach(a => grp.appendChild(mkOpt(a,false)));
+        sel.appendChild(grp);
+      }
+      if (conUbic.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Con ubicación';
+        conUbic.forEach(a => grp.appendChild(mkOpt(a,true)));
+        sel.appendChild(grp);
+      }
+    }
+    function enableAssignMode(){
+      if (assignMode) return;
+      if (!selectedId) { alert('Primero selecciona una persona.'); return; }
+      assignMode = true;
+      const btn = document.getElementById('btnAssign');
+      btn.textContent = '✅ Click en el mapa…';
+      btn.disabled = true;
+      document.body.style.cursor = 'crosshair';
+
+      mapClickListener = map.addListener('click', (e) => {
+        const rec = getSelectedRecord();
+        if (!rec) return;
+        const lat = e.latLng.lat(), lng = e.latLng.lng();
+        rec.lat = lat; rec.lng = lng; // guardamos en memoria
+        setCoordPreview(lat, lng);
+        assignMode = false;
+        btn.textContent = '📌 Asignar en el mapa';
+        btn.disabled = false;
+        document.body.style.cursor = 'default';
+        if (mapClickListener) { google.maps.event.removeListener(mapClickListener); mapClickListener = null; }
+        rebuildPersonSelect(); // actualiza grupos
+        document.getElementById('personSelect').value = String(rec.id);
+        refresh(); // redibuja marcadores/estadísticas
+      });
+    }
+    function centerOnSelected(){
+      const rec = getSelectedRecord();
+      if (!rec) { alert('Selecciona una persona.'); return; }
+      if (Number.isFinite(rec.lat) && Number.isFinite(rec.lng)) {
+        map.setCenter({lat:rec.lat, lng:rec.lng});
+        map.setZoom(17);
+      } else {
+        map.setCenter(PACHACAMAC_CENTER); map.setZoom(14);
+      }
+    }
+    function clearLocation(){
+      const rec = getSelectedRecord();
+      if (!rec) { alert('Selecciona una persona.'); return; }
+      rec.lat = null; rec.lng = null;
+      setCoordPreview(null, null);
+      rebuildPersonSelect();
+      document.getElementById('personSelect').value = String(rec.id);
+      refresh();
     }
 
     /* ==================== Carga de datos ==================== */
@@ -498,7 +610,7 @@
     }
     async function autoLoad(){
       for(const n of DATA_CANDIDATES){
-        try{return {rows: await loadFromUrl(n), filename:n};}catch(_){/* siguiente */ }
+        try{return {rows: await loadFromUrl(n), filename:n};}catch(_){}
       }
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
@@ -510,15 +622,16 @@
         if(!Number.isFinite(lat)||!Number.isFinite(lng)){
           const p = parseUbicacion(n['ubicacion'] ?? n['ubicaciOn']); lat=p.lat; lng=p.lng;
         }
-        if(!Number.isFinite(lat)||!Number.isFinite(lng)) continue;
+        // Ojo: ahora permitimos filas sin coordenadas (para poder asignarlas)
         let turno = normalizeTurno(n['turno']);
-        if(!turno){ const hh=String(n['horario']||'').toUpperCase(); turno = hh.includes('PM') ? 'tarde' : 'manana'; }
+        if(!turno){ const hh=String(n['horario']||'').toUpperCase(); if(hh) turno = hh.includes('PM') ? 'tarde' : 'manana'; }
         out.push({
           id: String(n['id']??''), nombre:String(n['nombre']??'').trim(),
           giro:String(n['giro']??'').trim(), productos:String(n['productos']??'').trim(),
           zona:String(n['zona']??'').trim(), lugar_exacto:String(n['lugar_exacto']??'').trim(),
           horario:String(n['horario']??'').trim(), licencia:String(n['licencia']??'').trim(),
-          vigencia:String(n['vigencia']??'').trim(), turno, lat, lng
+          vigencia:String(n['vigencia']??'').trim(), turno: turno||'manana',
+          lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null
         });
       }
       return out;
@@ -565,8 +678,8 @@
         return `<Folder><name>${esc(name)}</name>${placemarks}</Folder>`;
       };
 
-      const man = data.filter(d=>d.turno==='manana');
-      const tar = data.filter(d=>d.turno==='tarde');
+      const man = data.filter(d=>Number.isFinite(d.lat)&&Number.isFinite(d.lng)&&d.turno==='manana');
+      const tar = data.filter(d=>Number.isFinite(d.lat)&&Number.isFinite(d.lng)&&d.turno==='tarde');
 
       return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -582,6 +695,52 @@
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+    }
+
+    /* ==================== Export Dataset (XLSX/CSV) ==================== */
+    function toExportRows(){
+      return allData.map(a=>{
+        const ubic = (Number.isFinite(a.lat)&&Number.isFinite(a.lng)) ? `${a.lat}, ${a.lng}` : '';
+        return {
+          'id': a.id ?? '',
+          'nombre': a.nombre ?? '',
+          'giro': a.giro ?? '',
+          'productos': a.productos ?? '',
+          'zona': a.zona ?? '',
+          'lugar_exacto': a.lugar_exacto ?? '',
+          'ubicación': ubic,
+          'horario': a.horario ?? '',
+          'licencia': a.licencia ?? '',
+          'vigencia': a.vigencia ?? '',
+          'turno': a.turno==='manana' ? 'Mañana' : 'Tarde',
+          'lat': Number.isFinite(a.lat)?a.lat:'',
+          'lng': Number.isFinite(a.lng)?a.lng:''
+        };
+      });
+    }
+    function downloadXlsx(){
+      const rows = toExportRows();
+      const ws = XLSX.utils.json_to_sheet(rows, { header: ['id','nombre','giro','productos','zona','lugar_exacto','ubicación','horario','licencia','vigencia','turno','lat','lng'] });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Ambulantes');
+      XLSX.writeFile(wb, 'ambulantes_actualizado.xlsx');
+    }
+    function downloadCsv(){
+      const rows = toExportRows();
+      const headers = ['id','nombre','giro','productos','zona','lugar_exacto','ubicación','horario','licencia','vigencia','turno','lat','lng'];
+      const lines = [];
+      lines.push(headers.join(';'));
+      for (const r of rows) {
+        const vals = headers.map(h => {
+          const v = r[h] ?? '';
+          const s = String(v).replace(/"/g,'""');
+          return /[;\n"]/.test(s) ? `"${s}"` : s;
+        });
+        lines.push(vals.join(';'));
+      }
+      const csv = '\uFEFF' + lines.join('\n'); // BOM para Excel
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      downloadBlob('ambulantes_actualizado.csv', blob);
     }
 
     /* ==================== Tema ==================== */
@@ -605,7 +764,6 @@
 
     /* ==================== Init ==================== */
     window.initMap = async function(){
-      // Tema inicial
       const saved = localStorage.getItem('prefers-theme');
       setTheme(saved || 'light');
 
@@ -616,7 +774,7 @@
       });
       infoWindow = new google.maps.InfoWindow();
 
-      // Ajusta offset de FABs según altura real del export
+      // Desplazamiento FAB según barra export
       adjustFabOffset();
       const ro = new ResizeObserver(adjustFabOffset);
       ro.observe(document.getElementById('exportBar'));
@@ -648,14 +806,28 @@
         }, ()=>toast('No se pudo obtener tu ubicación', false), {enableHighAccuracy:true,timeout:8000,maximumAge:0});
       });
 
+      // Editor: listeners
+      document.getElementById('personSelect').addEventListener('change', (e)=>{
+        selectedId = e.target.value || '';
+        const rec = getSelectedRecord();
+        if (rec && Number.isFinite(rec.lat) && Number.isFinite(rec.lng)){
+          setCoordPreview(rec.lat, rec.lng);
+        } else {
+          setCoordPreview(null, null);
+        }
+      });
+      document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
+      document.getElementById('btnCenter').addEventListener('click', centerOnSelected);
+      document.getElementById('btnClear').addEventListener('click', clearLocation);
+
       // Datos
       try{
         toast('Cargando datos…');
         const {rows, filename} = await autoLoad();
         allData = normalizeRows(rows);
-        if(!allData.length) toast('No hay filas válidas con coordenadas.', false);
-        else toast(`Cargado: ${filename} (${allData.length} registros)`);
+        toast(`Cargado: ${filename} (${allData.length} registros)`);
         populateGiroFilterAndLegend();
+        rebuildPersonSelect();
         refresh();
       }catch(err){
         toast(err.message, false);
@@ -665,26 +837,34 @@
       document.getElementById('btnKml').addEventListener('click', ()=>{
         const only = document.getElementById('onlyVisible').checked;
         const data = only ? applyFilters() : allData;
-        if(!data.length){ toast('No hay datos para exportar.', false); return; }
-        const kml = buildKml(data);
+        const valid = data.filter(d=>Number.isFinite(d.lat)&&Number.isFinite(d.lng));
+        if(!valid.length){ toast('No hay puntos con coordenadas para exportar.', false); return; }
+        const kml = buildKml(valid);
         downloadBlob('ambulantes_pachacamac.kml', new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));
       });
       document.getElementById('btnKmz').addEventListener('click', async ()=>{
         const only = document.getElementById('onlyVisible').checked;
         const data = only ? applyFilters() : allData;
-        if(!data.length){ toast('No hay datos para exportar.', false); return; }
-        const zip = new JSZip(); zip.file('doc.kml', buildKml(data));
+        const valid = data.filter(d=>Number.isFinite(d.lat)&&Number.isFinite(d.lng));
+        if(!valid.length){ toast('No hay puntos con coordenadas para exportar.', false); return; }
+        const zip = new JSZip(); zip.file('doc.kml', buildKml(valid));
         const blob = await zip.generateAsync({type:'blob'});
         downloadBlob('ambulantes_pachacamac.kmz', blob);
       });
+
+      // Export dataset actualizado (incluye lat/lng nuevos)
+      document.getElementById('btnXlsx').addEventListener('click', downloadXlsx);
+      document.getElementById('btnCsv').addEventListener('click', downloadCsv);
     };
   </script>
+
 
 
   <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
