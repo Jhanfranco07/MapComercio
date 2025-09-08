@@ -87,10 +87,20 @@
     [data-theme="dark"] .gm-style .gm-style-iw-d{ color:#e5e7eb !important }
     [data-theme="dark"] .gm-style .gm-style-iw-t::after{ background:#0b1324 !important }
 
-    /* === Mejora UX: modo asignación === */
+    /* === Vista de asignación con vista previa === */
     .assigning #map { cursor: crosshair; }
     .assigning .fab-panel { pointer-events: none; }
-    .assigning #btnAssign { pointer-events: auto; } /* Deja clickeable el botón para cancelar con otro click si gustas */
+    .assigning #btnAssign { pointer-events: auto; }
+
+    .marker-preview svg{
+      transform-origin:center;
+      animation: previewPulse 1s ease-in-out infinite alternate;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+    }
+    @keyframes previewPulse{
+      from { transform: scale(0.94); opacity:.85; }
+      to   { transform: scale(1.06); opacity:1; }
+    }
 
     @media (max-width:640px){
       .controls{ margin:8px } .stats{ padding:0 8px 8px }
@@ -129,7 +139,7 @@
 
   <div id="map"></div>
 
-  <!-- Panel de edición con subfiltro (siempre filtra por sector seleccionado) -->
+  <!-- Panel de edición -->
   <div class="fab-panel" id="editPanel" style="display:none">
     <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o Nombre… (Enter para licencia exacta)"/>
     <select id="personSelect" class="fab" title="Selecciona negocio…">
@@ -169,7 +179,7 @@
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
-    let escHandler = null;
+    let placementPreview = null, moveListener = null, escHandler = null;
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -181,7 +191,7 @@
     function adjustFabOffset(){ const h=(document.getElementById('exportBar')?.offsetHeight||56); document.documentElement.style.setProperty('--export-h', h+'px'); }
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
 
-    /* === helpers robustos para encabezados === */
+    /* encabezados robustos */
     const findKey = (obj, tokens) => {
       const keys = Object.keys(obj);
       const ok = k => tokens.every(t => k.includes(t));
@@ -192,7 +202,6 @@
       if(tokens.length){ const fk = findKey(obj, tokens); if(fk) return obj[fk]; }
       return '';
     };
-
     const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
 
     /* ===== Map ===== */
@@ -273,7 +282,7 @@
       const f=applyFilters();
       renderMarkers(f);
       updateStats(f);
-      if (editMode) rebuildPersonSelect(lastEditorFilter); // siempre respeta sector actual
+      if (editMode) rebuildPersonSelect(lastEditorFilter);
     }
 
     /* ===== Carga datos ===== */
@@ -303,8 +312,7 @@
           'apellidos_y_nombres_/_razon_social',
           'apellidos_y_nombres/_razon_social',
           'apellidos_y_nombres_razon_social',
-          'apellidos_y_nombres',
-          'razon_social','titular','nombres_y_apellidos'
+          'apellidos_y_nombres','razon_social','titular','nombres_y_apellidos'
         ], ['apellidos','nombres','razon','social'])).trim();
         const ruc      = String(pick(n, ['r_u_c_','ruc','r.u.c.','r_u_c'], ['r','u','c'])).trim();
         const dir      = String(pick(n, ['direccion_del_establecimiento_comercial','direccion'], ['direccion','establecimiento','comercial'])).trim();
@@ -372,11 +380,7 @@
     /* ===== Editor ===== */
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
-
-    function updateAssignEnabled(){
-      const btn = document.getElementById('btnAssign');
-      btn.disabled = !selectedId;
-    }
+    function updateAssignEnabled(){ document.getElementById('btnAssign').disabled = !selectedId; }
 
     function rebuildPersonSelect(filterText=""){
       lastEditorFilter = filterText;
@@ -405,54 +409,97 @@
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
       if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
       if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
-
       updateAssignEnabled();
+    }
+
+    function makePreviewNode(strokeColor){
+      const node = document.createElement('div');
+      node.className = 'marker-preview';
+      node.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 28 28" aria-hidden="true">
+          <circle cx="14" cy="14" r="9.5" fill="rgba(14,165,233,.25)"></circle>
+          <circle cx="14" cy="14" r="12" fill="none" stroke="${strokeColor}" stroke-width="3"></circle>
+        </svg>`;
+      return node;
     }
 
     function cancelAssignMode(){
       assignMode = false;
       document.body.classList.remove('assigning');
-      document.getElementById('btnAssign').textContent='📌 Asignar en el mapa';
-      try{ map.setOptions({ draggableCursor: null }); }catch(_){}
-      if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
-      if(escHandler){ window.removeEventListener('keydown', escHandler); escHandler = null; }
+      document.getElementById('btnAssign').textContent = '📌 Asignar en el mapa';
+      try { map.setOptions({ draggableCursor: null }); } catch(_) {}
+
+      if (mapClickListener) { google.maps.event.removeListener(mapClickListener); mapClickListener = null; }
+      if (moveListener)     { google.maps.event.removeListener(moveListener);     moveListener = null; }
+      if (placementPreview) {
+        if (placementPreview.map) placementPreview.map = null;
+        placementPreview = null;
+      }
+      if (escHandler){ window.removeEventListener('keydown', escHandler); escHandler = null; }
     }
 
     function enableAssignMode(){
       if(assignMode) return;
-      if(!selectedId){ alert('Selecciona un negocio.'); return; }
+      if (!selectedId){ alert('Selecciona un negocio.'); return; }
 
       assignMode = true;
       document.body.classList.add('assigning');
       const btn = document.getElementById('btnAssign');
       btn.textContent = '✅ Click en el mapa…';
-      try{ map.setOptions({ draggableCursor: 'crosshair' }); }catch(_){}
+      try { map.setOptions({ draggableCursor: 'crosshair' }); } catch(_) {}
 
       escHandler = (e)=>{ if(e.key === 'Escape') cancelAssignMode(); };
       window.addEventListener('keydown', escHandler);
 
+      const stroke = strokeForTheme();
+      if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+        placementPreview = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: map.getCenter(),
+          content: makePreviewNode(stroke),
+          zIndex: 9999
+        });
+      } else {
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 28 28">
+            <circle cx="14" cy="14" r="9.5" fill="rgba(14,165,233,.25)"></circle>
+            <circle cx="14" cy="14" r="12" fill="none" stroke="${stroke}" stroke-width="3"></circle>
+          </svg>`;
+        placementPreview = new google.maps.Marker({
+          map,
+          position: map.getCenter(),
+          zIndex: 9999,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(30,30),
+            anchor: new google.maps.Point(15,15)
+          }
+        });
+      }
+
+      moveListener = map.addListener('mousemove', (e)=>{
+        if (!placementPreview) return;
+        if (placementPreview.position) placementPreview.position = e.latLng;     // AdvancedMarker
+        if (placementPreview.setPosition) placementPreview.setPosition(e.latLng); // Marker
+      });
+
       mapClickListener = map.addListener('click', (e)=>{
-        const rec=getSelectedRecord(); if(!rec) return cancelAssignMode();
-        const lat=e.latLng.lat(), lng=e.latLng.lng();
-        rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
+        const rec = getSelectedRecord(); 
+        if (!rec) { cancelAssignMode(); return; }
+
+        rec.lat = e.latLng.lat();
+        rec.lng = e.latLng.lng();
+        setCoordPreview(rec.lat, rec.lng);
+
         rebuildPersonSelect(lastEditorFilter);
-        document.getElementById('personSelect').value=String(rec.id);
+        document.getElementById('personSelect').value = String(rec.id);
         refresh();
         cancelAssignMode();
       });
     }
 
-    function centerOnSelected(){
-      const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; }
-      if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); }
-      else { map.setCenter(CENTER); map.setZoom(14); }
-    }
-    function clearLocation(){
-      const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; }
-      r.lat=null; r.lng=null; setCoordPreview(null,null);
-      rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id);
-      refresh();
-    }
+    function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
+    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
 
     function toExportRows(){
       return allData.map(a=>({
@@ -498,14 +545,13 @@
       });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
-      // Editor
+      // Editor: panel y subfiltro
       document.getElementById('toggleEdit').addEventListener('click', ()=>{
         editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none';
         if(!editMode) cancelAssignMode();
-        if(editMode){ rebuildPersonSelect(lastEditorFilter); updateAssignEnabled(); }
+        if(editMode){ rebuildPersonSelect(lastEditorFilter); }
       });
 
-      // Subfiltro del editor
       const editorInput = document.getElementById('editorFilter');
       editorInput.addEventListener('input', (e)=>{ rebuildPersonSelect(e.target.value||''); });
       editorInput.addEventListener('keydown', (e)=>{
@@ -526,8 +572,7 @@
       document.getElementById('personSelect').addEventListener('change', (e)=>{
         selectedId=e.target.value||'';
         const rec=getSelectedRecord();
-        if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng);
-        else setCoordPreview(null,null);
+        if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng); else setCoordPreview(null,null);
         updateAssignEnabled();
       });
       document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
@@ -567,12 +612,11 @@
   </script>
 
 
-
-
    <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
