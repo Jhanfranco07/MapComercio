@@ -87,20 +87,24 @@
     [data-theme="dark"] .gm-style .gm-style-iw-d{ color:#e5e7eb !important }
     [data-theme="dark"] .gm-style .gm-style-iw-t::after{ background:#0b1324 !important }
 
-    /* === Vista de asignación con vista previa === */
+    /* === Asignación === */
     .assigning #map { cursor: crosshair; }
     .assigning .fab-panel { pointer-events: none; }
     .assigning #btnAssign { pointer-events: auto; }
 
+    /* Marcadores (AdvancedMarker) */
+    .marker-node svg{ filter: drop-shadow(0 2px 0 rgba(0,0,0,.08)); transition: transform .12s ease, filter .2s ease; }
+    .marker-node:hover svg{ transform: scale(1.06); filter: drop-shadow(0 6px 12px rgba(0,0,0,.18)); }
+    @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
+    .marker-node.pulse svg{ animation: pulse .55s ease-in-out 2; }
+
+    /* Vista previa móvil */
     .marker-preview svg{
       transform-origin:center;
       animation: previewPulse 1s ease-in-out infinite alternate;
       filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
     }
-    @keyframes previewPulse{
-      from { transform: scale(0.94); opacity:.85; }
-      to   { transform: scale(1.06); opacity:1; }
-    }
+    @keyframes previewPulse{ from { transform: scale(.94); opacity:.85; } to { transform: scale(1.06); opacity:1; } }
 
     @media (max-width:640px){
       .controls{ margin:8px } .stats{ padding:0 8px 8px }
@@ -176,10 +180,13 @@
 
     /* ===== Estado ===== */
     let map, infoWindow, markers=[];
+    let markerById = new Map();     // id -> marker (para resaltar)
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
     let placementPreview = null, moveListener = null, escHandler = null;
+    let lastAssignedId = null;       // para animar el recién asignado
+    let tempCircle = null;           // fallback si no hay AdvancedMarker
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -227,32 +234,57 @@
           <div><b>Giro:</b> ${esc(a.giro||'-')}</div>
         </div>`;
     }
-    function clearMarkers(){ for(const m of markers) m.setMap && m.setMap(null); markers=[]; }
+    function clearMarkers(){
+      for(const m of markers) if(m.setMap) m.setMap(null); 
+      markers=[]; markerById.clear();
+      if(tempCircle){ tempCircle.setMap(null); tempCircle=null; }
+    }
+    function showTempCircle(lat,lng){
+      // Solo fallback cuando NO hay AdvancedMarker
+      if(tempCircle){ tempCircle.setMap(null); tempCircle=null; }
+      tempCircle = new google.maps.Circle({
+        map, center:{lat,lng}, radius:20,
+        strokeColor: '#f59e0b', strokeOpacity: 0.9, strokeWeight: 3,
+        fillColor: '#22d3ee', fillOpacity: .25, clickable:false
+      });
+      setTimeout(()=>{ if(tempCircle){ tempCircle.setMap(null); tempCircle=null; } }, 2500);
+    }
     function renderMarkers(data){
       clearMarkers();
       const bounds=new google.maps.LatLngBounds();
       const hasAdv=!!(google.maps.marker && google.maps.marker.AdvancedMarkerElement);
       const ring=strokeForTheme();
+
       data.forEach(a=>{
         if(!Number.isFinite(a.lat)||!Number.isFinite(a.lng)) return;
         const pos={lat:a.lat,lng:a.lng};
         const fill=colorByHash(a.giro||a.sector||'N');
+
         if(hasAdv){
           const node=document.createElement('div');
+          node.className='marker-node';
           node.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
             <circle cx="14" cy="14" r="11" fill="${fill}" />
             <circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" />
           </svg>`;
+          if(String(a.id)===String(lastAssignedId)) node.classList.add('pulse');
+
           const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a),content:node});
           mk.addListener('gmp-click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.position);
+          markerById.set(String(a.id), { marker: mk, node });
         }else{
           const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
           mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
+          markerById.set(String(a.id), { marker: mk, node: null });
+          if(String(a.id)===String(lastAssignedId)) showTempCircle(a.lat,a.lng);
         }
       });
+
       if(data.some(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng))) map.fitBounds(bounds, 60); else { map.setCenter(CENTER); map.setZoom(13); }
+      // limpia el flag después de renderizar (la animación ya corre)
+      lastAssignedId = null;
     }
 
     /* ===== Filtros ===== */
@@ -491,9 +523,17 @@
         rec.lng = e.latLng.lng();
         setCoordPreview(rec.lat, rec.lng);
 
+        // destacar el recién asignado
+        lastAssignedId = String(rec.id);
+
+        // centramos y hacemos zoom
+        map.setCenter({lat:rec.lat,lng:rec.lng});
+        map.setZoom(17);
+
         rebuildPersonSelect(lastEditorFilter);
         document.getElementById('personSelect').value = String(rec.id);
-        refresh();
+        refresh(); // renderMarkers aplicará la animación
+
         cancelAssignMode();
       });
     }
@@ -612,10 +652,12 @@
   </script>
 
 
+
    <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
