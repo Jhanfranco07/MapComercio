@@ -6,7 +6,7 @@
   <title>Negocios — Mapa por Sector (Pachacámac)</title>
   <style>
     :root{
-      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#f3f4f6;
+      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#0f172a0f;
       --export-h:56px; --fab-gap:16px;
     }
     [data-theme="dark"]{
@@ -14,34 +14,63 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; transition: background .25s, color .25s;}
-    .hero{position:sticky; top:0; z-index:20; background: radial-gradient(1200px 600px at 10% -20%, rgba(232,240,254,.6) 10%, transparent 60%), var(--card); border-bottom:1px solid var(--ring); padding:16px 12px 10px; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+      transition: background .25s, color .25s;
+    }
+    .hero{
+      position:sticky; top:0; z-index:20;
+      background: radial-gradient(1200px 600px at 10% -20%, rgba(232,240,254,.6) 10%, transparent 60%), var(--card);
+      border-bottom:1px solid var(--ring); padding:16px 12px 10px;
+      display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;
+    }
     [data-theme="dark"] .hero{ background: radial-gradient(1200px 600px at 10% -20%, rgba(37,99,235,.25) 8%, transparent 60%), var(--card); }
     .hero h1{margin:0; font-size:20px; font-weight:800; color:var(--brand)}
     .hero p{margin:0; color:var(--muted); font-size:13px}
     .top-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
-    .btn{padding:9px 12px; border-radius:10px; border:1px solid var(--ring); background:#fff; cursor:pointer; font-weight:600; color:#111827; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition: box-shadow .25s, transform .08s, background .25s, color .25s, border-color .25s;}
+    .btn{
+      padding:9px 12px; border-radius:10px; border:1px solid var(--ring); background:#fff; cursor:pointer;
+      font-weight:600; color:#111827; text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+      transition: box-shadow .25s, transform .08s, background .25s, color .25s, border-color .25s;
+    }
     .btn.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
     .btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.10)} .btn:active{transform:translateY(1px)}
     [data-theme="dark"] .btn{ background:#0b1324; color:#e5e7eb; border-color:#223049 }
 
-    .controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap; background:rgba(255,255,255,.75); backdrop-filter: blur(8px); padding:10px 14px; margin:8px 12px; border:1px solid var(--ring); border-radius:14px; box-shadow:0 4px 24px rgba(0,0,0,.06); transition: background .25s;}
+    .controls{
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+      background:rgba(255,255,255,.75); backdrop-filter: blur(8px);
+      padding:10px 14px; margin:8px 12px; border:1px solid var(--ring);
+      border-radius:14px; box-shadow:0 4px 24px rgba(0,0,0,.06);
+      transition: background .25s;
+    }
     [data-theme="dark"] .controls{ background:rgba(15,23,42,.75) }
     .controls .group{display:flex; gap:8px; align-items:center}
     label{font-weight:600; color:#334155; font-size:14px}
     [data-theme="dark"] label{color:#cbd5e1}
-    select,input{padding:9px 12px; border:1px solid var(--ring); border-radius:10px; background:#fff; color:#111827; transition:border-color .2s, box-shadow .2s, transform .08s, background .25s, color .25s;}
+    select,input{
+      padding:9px 12px; border:1px solid var(--ring); border-radius:10px; background:#fff; color:#111827;
+      transition:border-color .2s, box-shadow .2s, transform .08s, background .25s, color .25s;
+    }
     [data-theme="dark"] select,[data-theme="dark"] input{background:#0b1324;color:#e5e7eb;border-color:#223049}
     select:focus,input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(26,115,232,.18)}
     .search{min-width:240px}
 
     .stats{display:flex; gap:10px; align-items:center; padding:0 14px 8px 14px}
-    .chip{display:inline-flex; gap:6px; align-items:center; background:var(--chip); border:1px solid var(--ring); color:#1f2937; padding:6px 10px; border-radius:999px; font-size:13px}
+    .chip{display:inline-flex; gap:6px; align-items:center; background:var(--chip); border:1px solid var(--ring);
+      color:#1f2937; padding:6px 10px; border-radius:999px; font-size:13px}
     [data-theme="dark"] .chip{ color:#e5e7eb }
 
     #map{height:62vh; min-height:520px; width:100%; border-top:1px solid var(--ring); border-bottom:1px solid var(--ring)}
 
-    .export{position:sticky; bottom:0; z-index:15; background:linear-gradient(180deg, rgba(246,247,249,.9), rgba(255,255,255,.95)); backdrop-filter: blur(6px); border-top:1px solid var(--ring); padding:10px 14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; min-height:48px;}
+    .export{
+      position:sticky; bottom:0; z-index:15;
+      background:linear-gradient(180deg, rgba(246,247,249,.9), rgba(255,255,255,.95));
+      backdrop-filter: blur(6px); border-top:1px solid var(--ring);
+      padding:10px 14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; min-height:48px;
+    }
     [data-theme="dark"] .export{ background:linear-gradient(180deg, rgba(11,18,32,.85), rgba(15,23,42,.95)); }
 
     .fab-panel{position:fixed; right:16px; bottom:calc(var(--export-h) + var(--fab-gap)); display:flex; flex-direction:column; gap:8px; z-index:9000; width:min(460px, 92vw)}
@@ -146,10 +175,19 @@
     function adjustFabOffset(){ const h=(document.getElementById('exportBar')?.offsetHeight||56); document.documentElement.style.setProperty('--export-h', h+'px'); }
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
 
-    const findKey = (obj, tokens) => { const keys = Object.keys(obj); const ok = k => tokens.every(t => k.includes(t)); return keys.find(k => ok(k)) || ''; };
-    const pick = (obj, keys, tokens=[]) => { for(const k of keys){ if(obj[k] != null) return obj[k]; } if(tokens.length){ const fk = findKey(obj, tokens); if(fk) return obj[fk]; } return ''; };
+    /* === helpers robustos para encabezados === */
+    const findKey = (obj, tokens) => {
+      const keys = Object.keys(obj);
+      const ok = k => tokens.every(t => k.includes(t));
+      return keys.find(k => ok(k)) || '';
+    };
+    const pick = (obj, keys, tokens=[]) => {
+      for(const k of keys){ if(obj[k] != null) return obj[k]; }
+      if(tokens.length){ const fk = findKey(obj, tokens); if(fk) return obj[fk]; }
+      return '';
+    };
 
-    const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
+    const displayName = a => (a.nombre_comercial || a.titular || '').trim();
 
     /* ===== Map ===== */
     function svgIcon(fill, stroke){
@@ -163,7 +201,7 @@
       return `
         <div style="min-width:260px;max-width:380px;font-family:inherit">
           <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:6px 6px 0 0;margin:-8px -8px 8px -8px;font-weight:700">
-            ${esc(displayName(a) || '—')}
+            ${esc(displayName(a) || a.licencia || '—')}
           </div>
           <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
           <div><b>Periodo:</b> ${esc(a.periodo||'-')}</div>
@@ -186,12 +224,15 @@
         const fill=colorByHash(a.giro||a.sector||'N');
         if(hasAdv){
           const node=document.createElement('div');
-          node.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="${fill}" /><circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" /></svg>`;
-          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a),content:node});
+          node.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+            <circle cx="14" cy="14" r="11" fill="${fill}" />
+            <circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" />
+          </svg>`;
+          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a)||a.licencia,content:node});
           mk.addListener('gmp-click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.position);
         }else{
-          const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
+          const mk=new google.maps.Marker({map,position:pos,title:displayName(a)||a.licencia,icon:svgIcon(fill,ring)});
           mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
@@ -199,15 +240,9 @@
       if(data.some(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng))) map.fitBounds(bounds, 60); else { map.setCenter(CENTER); map.setZoom(13); }
     }
 
-    /* “flash” visual tras asignar */
-    function flashAt(lat,lng){
-      const fill='#10b981', ring='#111827';
-      const mk = new google.maps.Marker({map, position:{lat,lng}, icon: svgIcon(fill, ring), zIndex: 9999});
-      setTimeout(()=> mk.setMap(null), 1800);
-    }
-
     /* ===== Filtros ===== */
     const currentSector = () => document.getElementById('sectorFilter').value;
+
     function applyFilters(){
       const sector=currentSector();
       const q=document.getElementById('searchInput').value.trim().toLowerCase();
@@ -232,7 +267,7 @@
       const f=applyFilters();
       renderMarkers(f);
       updateStats(f);
-      if (editMode) rebuildPersonSelect(lastEditorFilter);
+      if (editMode) rebuildPersonSelect(lastEditorFilter); // siempre respeta sector actual
     }
 
     /* ===== Carga datos ===== */
@@ -251,16 +286,23 @@
       for(const n of DATA_CANDIDATES){ try{ return {rows:await loadFromUrl(n), filename:n}; }catch(_){} }
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
+
+    // >>> IDs ÚNICOS AUNQUE LA LICENCIA SE REPITA
     function normRows(rows){
-      const out=[]; let i=0;
+      const out=[]; let rowIdx=0;
+      const licCounter = Object.create(null); // licencia -> cuántos llevamos
+
       for(const row of rows){
         const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)]=row[k];
 
         const licencia = String(pick(n, ['licencia'], ['licencia'])).trim();
         const periodo  = String(pick(n, ['periodo'], ['periodo'])).trim();
         const titular  = String(pick(n, [
-          'apellidos_y_nombres_/_razon_social','apellidos_y_nombres/_razon_social','apellidos_y_nombres_razon_social',
-          'apellidos_y_nombres','razon_social','titular','nombres_y_apellidos'
+          'apellidos_y_nombres_/_razon_social',
+          'apellidos_y_nombres/_razon_social',
+          'apellidos_y_nombres_razon_social',
+          'apellidos_y_nombres',
+          'razon_social','titular','nombres_y_apellidos'
         ], ['apellidos','nombres','razon','social'])).trim();
         const ruc      = String(pick(n, ['r_u_c_','ruc','r.u.c.','r_u_c'], ['r','u','c'])).trim();
         const dir      = String(pick(n, ['direccion_del_establecimiento_comercial','direccion'], ['direccion','establecimiento','comercial'])).trim();
@@ -271,15 +313,23 @@
         const giro     = String(pick(n, ['giro_del_establecimiento','giro'], ['giro'])).trim();
         const nombreCom= String(pick(n, ['nombre_comercial'], ['nombre','comercial'])).trim();
 
-        // lee Lat / Long, o “ubicacion”
         let lat = parseFloat(pick(n, ['lat'], ['lat']));
         let lng = parseFloat(pick(n, ['long','lng'], ['long','lng']));
         if(!Number.isFinite(lat)||!Number.isFinite(lng)){
           const p=parseUbicacion(pick(n, ['ubicacion'], ['ubicacion'])); lat=p.lat; lng=p.lng;
         }
 
+        // contador por licencia para garantizar unicidad
+        let uid;
+        if (licencia) {
+          licCounter[licencia] = (licCounter[licencia] || 0) + 1;
+          uid = `${licencia}#${licCounter[licencia]}`;
+        } else {
+          uid = (ruc || nombreCom || giro) ? `${ruc}|${nombreCom}|${giro}|${++rowIdx}` : String(++rowIdx);
+        }
+
         out.push({
-          id: licencia || String(++i),
+          id: uid,  // id único interno
           licencia, periodo, titular, ruc, dir, num, mz, lt, sector, giro,
           nombre_comercial:nombreCom,
           lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null
@@ -296,7 +346,7 @@
         const col=colorByHash(a.giro||a.sector||'N');
         return `
           <Placemark>
-            <name>${esc(displayName(a))}</name>
+            <name>${esc(displayName(a) || a.licencia || '')}</name>
             <Style><IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle><LabelStyle><scale>0.0</scale></LabelStyle></Style>
             <description><![CDATA[
               <b>Licencia:</b> ${esc(a.licencia)}<br/>
@@ -312,11 +362,78 @@
       }).join('\n');
 
       return `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Negocios — Pachacámac</name>${placemarks}</Document></kml>`;
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Negocios — Pachacámac</name>
+    ${placemarks}
+  </Document>
+</kml>`;
     }
     function downloadBlob(name, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(a.href), 1500); }
 
-    /* ===== Export dataset ===== */
+    /* ===== Tema ===== */
+    function applyThemeUI(th){ const i=document.getElementById('themeIcon'), t=document.getElementById('themeText'); if(th==='dark'){i.textContent='☀️'; t.textContent='Modo claro';} else {i.textContent='🌙'; t.textContent='Modo oscuro';} }
+    const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
+    function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
+
+    /* ===== Editor ===== */
+    const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
+    function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
+
+    function labelForOption(a, has){
+      const name = displayName(a);
+      const fallback = name || a.giro || a.sector || a.dir || '—';
+      const lic = a.licencia || '(s/lic)';
+      const tag = has ? '✅' : '❌';
+      return `${tag} ${lic} — ${fallback}`;
+    }
+
+    function rebuildPersonSelect(filterText=""){
+      lastEditorFilter = filterText;
+      const sectorNow = currentSector();
+      const sel=document.getElementById('personSelect');
+
+      let entries = allData.slice();
+      if (sectorNow !== 'todos') {
+        entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
+      }
+
+      const f = filterText.trim().toLowerCase();
+      if (f) {
+        entries = entries.filter(a => {
+          const licencia = String(a.licencia||'').toLowerCase();
+          const nombre   = String(displayName(a)||'').toLowerCase();
+          return licencia.includes(f) || nombre.includes(f);
+        });
+      }
+
+      entries.sort((a,b)=> (displayName(a)||a.licencia||'').localeCompare((displayName(b)||b.licencia||''),'es'));
+
+      const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
+      const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
+
+      sel.innerHTML='<option value="">Selecciona negocio…</option>';
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,false); g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,true); g.appendChild(o); }); sel.appendChild(g); }
+    }
+
+    function enableAssignMode(){
+      if(assignMode) return;
+      if(!selectedId){ alert('Selecciona un negocio.'); return; }
+      assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
+      mapClickListener = map.addListener('click', (e)=>{
+        const rec=getSelectedRecord(); if(!rec) return;
+        const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
+        assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
+        if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
+        rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
+        refresh();
+        toast('Ubicación asignada.');
+      });
+    }
+    function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
+    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
+
     function toExportRows(){
       return allData.map(a=>({
         'LICENCIA': a.licencia||'','PERIODO': a.periodo||'','APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
@@ -342,89 +459,41 @@
       const csv='\uFEFF'+lines.join('\n'); downloadBlob('negocios_actualizado.csv', new Blob([csv],{type:'text/csv;charset=utf-8;'}));
     }
 
-    /* ===== Tema ===== */
-    function applyThemeUI(th){ const i=document.getElementById('themeIcon'), t=document.getElementById('themeText'); if(th==='dark'){i.textContent='☀️'; t.textContent='Modo claro';} else {i.textContent='🌙'; t.textContent='Modo oscuro';} }
-    const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
-    function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
-
-    /* ===== Editor ===== */
-    const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
-    function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
-
-    function rebuildPersonSelect(filterText=""){
-      lastEditorFilter = filterText;
-      const sectorNow = currentSector();
-      const sel=document.getElementById('personSelect');
-
-      let entries = allData.slice();
-      if (sectorNow !== 'todos') entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
-
-      const f = filterText.trim().toLowerCase();
-      if (f) entries = entries.filter(a => String(a.licencia||'').toLowerCase().includes(f) || String(displayName(a)||'').toLowerCase().includes(f));
-
-      entries.sort((a,b)=> displayName(a).localeCompare(displayName(b),'es'));
-      const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
-      const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
-
-      sel.innerHTML='<option value="">Selecciona negocio…</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
-    }
-
-    function enableAssignMode(){
-      if(assignMode) return;
-      if(!selectedId){ alert('Selecciona un negocio.'); return; }
-      assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
-      mapClickListener = map.addListener('click', (e)=>{
-        const rec=getSelectedRecord(); if(!rec) return;
-        const lat=e.latLng.lat(), lng=e.latLng.lng();
-        // guarda en memoria
-        rec.lat=lat; rec.lng=lng;
-        // feedback
-        setCoordPreview(lat,lng);
-        flashAt(lat,lng);
-        toast('Ubicación asignada');
-
-        // UI reset
-        assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
-        if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
-        // refresca listas/markers
-        rebuildPersonSelect(lastEditorFilter);
-        document.getElementById('personSelect').value=String(rec.id);
-        // recentra para que lo veas
-        map.setCenter({lat,lng}); map.setZoom(18);
-        // si los filtros lo ocultaron, igual re-render
-        refresh();
-      });
-    }
-    function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
-    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
-
     /* ===== Init ===== */
     window.initMap = async function(){
+      // Tema inicial
       setTheme(localStorage.getItem('prefers-theme-negocios') || 'light');
+
       if(!(window.google && google.maps)){ alert('No cargó Google Maps. Revisa API key / referrers.'); return; }
       map=new google.maps.Map(document.getElementById('map'), { center:CENTER, zoom:13, mapTypeControl:false, streetViewControl:false, fullscreenControl:true, mapId:(theme()==='dark'?MAP_ID_DARK:MAP_ID_LIGHT)||undefined });
       infoWindow=new google.maps.InfoWindow();
 
+      // Tema toggle
       document.getElementById('themeToggle').addEventListener('click', ()=>{ setTheme(theme()==='dark'?'light':'dark'); });
+
+      // Filtros principales
       document.getElementById('sectorFilter').addEventListener('change', ()=>{ refresh(); if (editMode) rebuildPersonSelect(lastEditorFilter); });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
+      // Editor
       document.getElementById('toggleEdit').addEventListener('click', ()=>{
         editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none';
         if(!editMode && assignMode && mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; assignMode=false; document.body.style.cursor='default'; }
         if(editMode){ rebuildPersonSelect(lastEditorFilter); }
       });
 
+      // Subfiltro del editor
       const editorInput = document.getElementById('editorFilter');
       editorInput.addEventListener('input', (e)=>{ rebuildPersonSelect(e.target.value||''); });
       editorInput.addEventListener('keydown', (e)=>{
         if(e.key==='Enter'){
           const lic = (e.target.value||'').trim();
           if(!lic) return;
-          const rec = allData.find(a => String(a.licencia||'').toLowerCase() === lic.toLowerCase());
-          if(rec){ selectedId = String(rec.id); document.getElementById('personSelect').value = selectedId; setCoordPreview(rec.lat, rec.lng); toast(`Seleccionado: Lic. ${rec.licencia}`); }
+          // En lugar de auto-seleccionar una, filtramos la lista para esa licencia exacta
+          rebuildPersonSelect(lic);
+          const matches = allData.filter(a => String(a.licencia||'').toLowerCase() === lic.toLowerCase() && (currentSector()==='todos' || String(a.sector).toLowerCase()===String(currentSector()).toLowerCase()));
+          if(matches.length>1) toast(`Se encontraron ${matches.length} con licencia ${lic}. Elige uno.`, true);
+          if(matches.length===1){ selectedId = matches[0].id; document.getElementById('personSelect').value = selectedId; setCoordPreview(matches[0].lat,matches[0].lng); }
         }
       });
 
@@ -435,11 +504,24 @@
       document.getElementById('btnExportXlsx').addEventListener('click', downloadXlsx);
       document.getElementById('btnExportCsv').addEventListener('click', downloadCsv);
 
-      document.getElementById('btnKml').addEventListener('click', ()=>{ const only=document.getElementById('onlyVisible').checked; const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)); if(!data.length) return toast('No hay datos para exportar', false); const kml=buildKml(data); downloadBlob('negocios_pachacamac.kml', new Blob([kml],{type:'application/vnd.google-earth.kml+xml'})); });
-      document.getElementById('btnKmz').addEventListener('click', async ()=>{ const only=document.getElementById('onlyVisible').checked; const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)); if(!data.length) return toast('No hay datos para exportar', false); const zip=new JSZip(); zip.file('doc.kml', buildKml(data)); const blob=await zip.generateAsync({type:'blob'}); downloadBlob('negocios_pachacamac.kmz', blob); });
+      // Export
+      document.getElementById('btnKml').addEventListener('click', ()=>{
+        const only=document.getElementById('onlyVisible').checked;
+        const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
+        if(!data.length) return toast('No hay datos para exportar', false);
+        const kml=buildKml(data); downloadBlob('negocios_pachacamac.kml', new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));
+      });
+      document.getElementById('btnKmz').addEventListener('click', async ()=>{
+        const only=document.getElementById('onlyVisible').checked;
+        const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
+        if(!data.length) return toast('No hay datos para exportar', false);
+        const zip=new JSZip(); zip.file('doc.kml', buildKml(data)); const blob=await zip.generateAsync({type:'blob'}); downloadBlob('negocios_pachacamac.kmz', blob);
+      });
 
+      // FAB offset
       adjustFabOffset(); new ResizeObserver(adjustFabOffset).observe(document.getElementById('exportBar')); window.addEventListener('resize', adjustFabOffset);
 
+      // Datos
       try{
         toast('Cargando datos…');
         const {rows, filename}=await autoLoad();
@@ -453,12 +535,11 @@
   </script>
 
 
-
-
   <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
