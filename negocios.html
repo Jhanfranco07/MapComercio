@@ -87,6 +87,11 @@
     [data-theme="dark"] .gm-style .gm-style-iw-d{ color:#e5e7eb !important }
     [data-theme="dark"] .gm-style .gm-style-iw-t::after{ background:#0b1324 !important }
 
+    /* === Mejora UX: modo asignación === */
+    .assigning #map { cursor: crosshair; }
+    .assigning .fab-panel { pointer-events: none; }
+    .assigning #btnAssign { pointer-events: auto; } /* Deja clickeable el botón para cancelar con otro click si gustas */
+
     @media (max-width:640px){
       .controls{ margin:8px } .stats{ padding:0 8px 8px }
     }
@@ -130,7 +135,7 @@
     <select id="personSelect" class="fab" title="Selecciona negocio…">
       <option value="">Selecciona negocio…</option>
     </select>
-    <button id="btnAssign" class="fab">📌 Asignar en el mapa</button>
+    <button id="btnAssign" class="fab" disabled>📌 Asignar en el mapa</button>
     <button id="btnCenter" class="fab">🎯 Centrar</button>
     <button id="btnClear" class="fab">🗑️ Quitar ubicación</button>
     <div class="fab" id="coordPreview">Lat: — , Lng: —</div>
@@ -164,6 +169,7 @@
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
+    let escHandler = null;
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -233,8 +239,7 @@
           markers.push(mk); bounds.extend(mk.position);
         }else{
           const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
-          mk.addEventListener?.('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
-          mk.addListener?.('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
+          mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
       });
@@ -368,12 +373,16 @@
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
 
+    function updateAssignEnabled(){
+      const btn = document.getElementById('btnAssign');
+      btn.disabled = !selectedId;
+    }
+
     function rebuildPersonSelect(filterText=""){
       lastEditorFilter = filterText;
       const sectorNow = currentSector();
       const sel=document.getElementById('personSelect');
 
-      // filtra SIEMPRE por sector seleccionado (si es "todos", muestra todo)
       let entries = allData.slice();
       if (sectorNow !== 'todos') {
         entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
@@ -396,23 +405,54 @@
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
       if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
       if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${displayName(a)}`; g.appendChild(o); }); sel.appendChild(g); }
+
+      updateAssignEnabled();
+    }
+
+    function cancelAssignMode(){
+      assignMode = false;
+      document.body.classList.remove('assigning');
+      document.getElementById('btnAssign').textContent='📌 Asignar en el mapa';
+      try{ map.setOptions({ draggableCursor: null }); }catch(_){}
+      if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
+      if(escHandler){ window.removeEventListener('keydown', escHandler); escHandler = null; }
     }
 
     function enableAssignMode(){
       if(assignMode) return;
       if(!selectedId){ alert('Selecciona un negocio.'); return; }
-      assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
+
+      assignMode = true;
+      document.body.classList.add('assigning');
+      const btn = document.getElementById('btnAssign');
+      btn.textContent = '✅ Click en el mapa…';
+      try{ map.setOptions({ draggableCursor: 'crosshair' }); }catch(_){}
+
+      escHandler = (e)=>{ if(e.key === 'Escape') cancelAssignMode(); };
+      window.addEventListener('keydown', escHandler);
+
       mapClickListener = map.addListener('click', (e)=>{
-        const rec=getSelectedRecord(); if(!rec) return;
-        const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
-        assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
-        if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
-        rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
+        const rec=getSelectedRecord(); if(!rec) return cancelAssignMode();
+        const lat=e.latLng.lat(), lng=e.latLng.lng();
+        rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
+        rebuildPersonSelect(lastEditorFilter);
+        document.getElementById('personSelect').value=String(rec.id);
         refresh();
+        cancelAssignMode();
       });
     }
-    function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
-    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
+
+    function centerOnSelected(){
+      const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; }
+      if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); }
+      else { map.setCenter(CENTER); map.setZoom(14); }
+    }
+    function clearLocation(){
+      const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; }
+      r.lat=null; r.lng=null; setCoordPreview(null,null);
+      rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id);
+      refresh();
+    }
 
     function toExportRows(){
       return allData.map(a=>({
@@ -454,15 +494,15 @@
       // Filtros principales
       document.getElementById('sectorFilter').addEventListener('change', ()=>{
         refresh();
-        if (editMode) rebuildPersonSelect(lastEditorFilter); // fuerza re-lista por sector
+        if (editMode) rebuildPersonSelect(lastEditorFilter);
       });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
       // Editor
       document.getElementById('toggleEdit').addEventListener('click', ()=>{
         editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none';
-        if(!editMode && assignMode && mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; assignMode=false; document.body.style.cursor='default'; }
-        if(editMode){ rebuildPersonSelect(lastEditorFilter); }
+        if(!editMode) cancelAssignMode();
+        if(editMode){ rebuildPersonSelect(lastEditorFilter); updateAssignEnabled(); }
       });
 
       // Subfiltro del editor
@@ -477,12 +517,19 @@
             selectedId = String(rec.id);
             document.getElementById('personSelect').value = selectedId;
             setCoordPreview(rec.lat, rec.lng);
+            updateAssignEnabled();
             toast(`Seleccionado: Lic. ${rec.licencia}`);
           }
         }
       });
 
-      document.getElementById('personSelect').addEventListener('change', (e)=>{ selectedId=e.target.value||''; const rec=getSelectedRecord(); if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng); else setCoordPreview(null,null); });
+      document.getElementById('personSelect').addEventListener('change', (e)=>{
+        selectedId=e.target.value||'';
+        const rec=getSelectedRecord();
+        if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng);
+        else setCoordPreview(null,null);
+        updateAssignEnabled();
+      });
       document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
       document.getElementById('btnCenter').addEventListener('click', centerOnSelected);
       document.getElementById('btnClear').addEventListener('click', clearLocation);
@@ -522,13 +569,11 @@
 
 
 
-
-
-
    <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
