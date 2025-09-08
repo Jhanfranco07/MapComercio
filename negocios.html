@@ -14,21 +14,13 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--ink);
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif;
-      -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-      transition: background .25s, color .25s;
-    }
-    .hero{position:sticky; top:0; z-index:20; background: radial-gradient(1200px 600px at 10% -20%, rgba(232,240,254,.6) 10%, transparent 60%), var(--card);
-      border-bottom:1px solid var(--ring); padding:16px 12px 10px; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;}
+    body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; transition: background .25s, color .25s;}
+    .hero{position:sticky; top:0; z-index:20; background: radial-gradient(1200px 600px at 10% -20%, rgba(232,240,254,.6) 10%, transparent 60%), var(--card); border-bottom:1px solid var(--ring); padding:16px 12px 10px; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;}
     [data-theme="dark"] .hero{ background: radial-gradient(1200px 600px at 10% -20%, rgba(37,99,235,.25) 8%, transparent 60%), var(--card); }
     .hero h1{margin:0; font-size:20px; font-weight:800; color:var(--brand)}
     .hero p{margin:0; color:var(--muted); font-size:13px}
     .top-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
-    .btn{padding:9px 12px; border-radius:10px; border:1px solid var(--ring); background:#fff; cursor:pointer;
-      font-weight:600; color:#111827; text-decoration:none; display:inline-flex; align-items:center; gap:6px;
-      transition: box-shadow .25s, transform .08s, background .25s, color .25s, border-color .25s;}
+    .btn{padding:9px 12px; border-radius:10px; border:1px solid var(--ring); background:#fff; cursor:pointer; font-weight:600; color:#111827; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition: box-shadow .25s, transform .08s, background .25s, color .25s, border-color .25s;}
     .btn.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
     .btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.10)} .btn:active{transform:translateY(1px)}
     [data-theme="dark"] .btn{ background:#0b1324; color:#e5e7eb; border-color:#223049 }
@@ -74,9 +66,7 @@
     @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
     .marker-node.pulse svg{ animation: pulse .45s ease-in-out 2; }
 
-    @media (max-width:640px){
-      .controls{ margin:8px } .stats{ padding:0 8px 8px }
-    }
+    @media (max-width:640px){ .controls{ margin:8px } .stats{ padding:0 8px 8px } }
   </style>
 </head>
 <body>
@@ -152,7 +142,7 @@
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
-    let lastAssignedId = null;       // para pulso tras asignar
+    let lastAssignedId = null;
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -165,7 +155,7 @@
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
     const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
 
-    /* ===== Map (mismo estilo que ambulatorio) ===== */
+    /* ===== Marcadores (idéntico al estilo de ambulatorio) ===== */
     function svgIcon(fill, stroke){
       const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
         <circle cx="14" cy="14" r="11" fill="${fill}" />
@@ -350,9 +340,7 @@
       const sel=document.getElementById('personSelect');
 
       let entries = allData.slice();
-      if (sectorNow !== 'todos') {
-        entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
-      }
+      if (sectorNow !== 'todos') entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
 
       const f = filterText.trim().toLowerCase();
       if (f) {
@@ -377,8 +365,11 @@
     function enableAssignMode(){
       if(assignMode) return;
       if (!selectedId){ alert('Selecciona un negocio.'); return; }
-      assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
+      assignMode=true;
+      document.getElementById('btnAssign').textContent='✅ Click en el mapa…';
+      document.body.style.cursor='crosshair';
 
+      // Listener moderno (tiene .remove())
       mapClickListener = map.addListener('click', (e)=>{
         const rec=getSelectedRecord(); if(!rec) return;
         rec.lat = e.latLng.lat(); rec.lng = e.latLng.lng();
@@ -387,15 +378,20 @@
         // resaltar este id tras el render
         lastAssignedId = String(rec.id);
 
-        // centra y muestra
+        // mostrar confirmación y centrar
         map.setCenter({lat:rec.lat,lng:rec.lng}); map.setZoom(17);
+        toast(`Ubicación asignada a: ${displayName(rec)}`);
 
-        assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
-        if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
+        // salir de modo asignación
+        assignMode=false;
+        document.getElementById('btnAssign').textContent='📌 Asignar en el mapa';
+        document.body.style.cursor='default';
+        if(mapClickListener && typeof mapClickListener.remove==='function'){ mapClickListener.remove(); mapClickListener=null; }
 
+        // refrescar listas y mapa (ahora aparece el círculo y pasa a ✅)
         rebuildPersonSelect(lastEditorFilter);
         document.getElementById('personSelect').value=String(rec.id);
-        refresh(); // dibuja el círculo y hace pulse
+        refresh();
       });
     }
     function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
@@ -487,11 +483,16 @@
     };
   </script>
 
+  <!-- Google Maps (con Advanced Marker) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
+</body>
+</html>
 
   <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
