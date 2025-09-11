@@ -6,7 +6,7 @@
   <title>Negocios — Mapa por Sector (Pachacámac)</title>
   <style>
     :root{
-      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#0f172a0f;
+      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#f3f4f6;
       --export-h:56px; --fab-gap:16px;
     }
     [data-theme="dark"]{
@@ -37,6 +37,7 @@
     }
     .btn.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
     .btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.10)} .btn:active{transform:translateY(1px)}
+    .btn[disabled]{opacity:.5; cursor:not-allowed}
     [data-theme="dark"] .btn{ background:#0b1324; color:#e5e7eb; border-color:#223049 }
 
     .controls{
@@ -99,6 +100,8 @@
     <div class="top-actions">
       <a class="btn" href="index.html">↩️ Ir al mapa principal</a>
       <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span> <span id="themeText">Modo oscuro</span></button>
+      <button id="btnOpenFile"  class="btn">📂 Abrir Excel/CSV</button>
+      <button id="btnSaveSame" class="btn primary" disabled>💾 Guardar (sobrescribir)</button>
     </div>
   </div>
 
@@ -154,7 +157,7 @@
 
   <script>
     /* ===== Config ===== */
-    const DATA_CANDIDATES = ["negocios3.xlsx","negocios2.csv"];
+    const DATA_CANDIDATES = ["negocios.xlsx","negocios.csv"];
     const MAP_ID_LIGHT = "TU_MAP_ID_CLARO";
     const MAP_ID_DARK  = "TU_MAP_ID_OSCURO";
     const CENTER = { lat: -12.155, lng: -76.870 };
@@ -164,6 +167,12 @@
     let allData=[];
     let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
+    let DATASET_ID = "";
+
+    // File System Access
+    let fileHandle = null;       // manejador del archivo abierto
+    let fileKind   = null;       // 'xlsx' | 'csv'
+    let fileName   = "";         // nombre visible
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
@@ -175,7 +184,6 @@
     function adjustFabOffset(){ const h=(document.getElementById('exportBar')?.offsetHeight||56); document.documentElement.style.setProperty('--export-h', h+'px'); }
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
 
-    /* === helpers robustos para encabezados === */
     const findKey = (obj, tokens) => {
       const keys = Object.keys(obj);
       const ok = k => tokens.every(t => k.includes(t));
@@ -186,8 +194,7 @@
       if(tokens.length){ const fk = findKey(obj, tokens); if(fk) return obj[fk]; }
       return '';
     };
-
-    const displayName = a => (a.nombre_comercial || a.titular || '').trim();
+    const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
 
     /* ===== Map ===== */
     function svgIcon(fill, stroke){
@@ -201,7 +208,7 @@
       return `
         <div style="min-width:260px;max-width:380px;font-family:inherit">
           <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:6px 6px 0 0;margin:-8px -8px 8px -8px;font-weight:700">
-            ${esc(displayName(a) || a.licencia || '—')}
+            ${esc(displayName(a) || '—')}
           </div>
           <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
           <div><b>Periodo:</b> ${esc(a.periodo||'-')}</div>
@@ -228,11 +235,11 @@
             <circle cx="14" cy="14" r="11" fill="${fill}" />
             <circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" />
           </svg>`;
-          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a)||a.licencia,content:node});
+          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a),content:node});
           mk.addListener('gmp-click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.position);
         }else{
-          const mk=new google.maps.Marker({map,position:pos,title:displayName(a)||a.licencia,icon:svgIcon(fill,ring)});
+          const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
           mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
@@ -267,10 +274,10 @@
       const f=applyFilters();
       renderMarkers(f);
       updateStats(f);
-      if (editMode) rebuildPersonSelect(lastEditorFilter); // siempre respeta sector actual
+      if (editMode) rebuildPersonSelect(lastEditorFilter);
     }
 
-    /* ===== Carga datos ===== */
+    /* ===== Carga datos (HTTP y FS Access) ===== */
     async function loadFromUrl(name){
       const resp=await fetch(name); if(!resp.ok) throw new Error('No se pudo cargar '+name);
       const low=name.toLowerCase();
@@ -287,11 +294,49 @@
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
 
-    // >>> IDs ÚNICOS AUNQUE LA LICENCIA SE REPITA
-    function normRows(rows){
-      const out=[]; let rowIdx=0;
-      const licCounter = Object.create(null); // licencia -> cuántos llevamos
+    async function openDatasetFromDisk(){
+      if(!window.showOpenFilePicker){ toast('Tu navegador no permite abrir archivos directamente.', false); return; }
+      try{
+        const [h] = await showOpenFilePicker({
+          types:[
+            { description:'Excel', accept:{ 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx'], 'application/vnd.ms-excel':['.xls'] } },
+            { description:'CSV',   accept:{ 'text/csv':['.csv'] } }
+          ],
+          excludeAcceptAllOption:false,
+          multiple:false
+        });
+        fileHandle = h;
+        fileName = h.name || 'dataset';
+        DATASET_ID = fileName;
+        const ext = fileName.toLowerCase().split('.').pop();
+        fileKind = (ext==='csv') ? 'csv' : 'xlsx';
 
+        const file = await h.getFile();
+        let rows;
+        if(fileKind==='xlsx'){
+          const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+          const sh = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(sh,{defval:''});
+        }else{
+          const text = await file.text();
+          rows = await new Promise((res,rej)=>Papa.parse(text,{header:true,delimiter:text.includes(';')?';':',',skipEmptyLines:true,complete:o=>res(o.data),error:rej}));
+        }
+
+        allData = normRows(rows);
+        populateFilters();
+        rebuildPersonSelect('');
+        refresh();
+
+        document.getElementById('btnSaveSame').disabled = false;
+        toast(`Abierto: ${fileName} (${allData.length} filas)`);
+      }catch(err){
+        console.error(err);
+        toast('No se pudo abrir el archivo', false);
+      }
+    }
+
+    function normRows(rows){
+      const out=[]; let i=0;
       for(const row of rows){
         const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)]=row[k];
 
@@ -319,17 +364,8 @@
           const p=parseUbicacion(pick(n, ['ubicacion'], ['ubicacion'])); lat=p.lat; lng=p.lng;
         }
 
-        // contador por licencia para garantizar unicidad
-        let uid;
-        if (licencia) {
-          licCounter[licencia] = (licCounter[licencia] || 0) + 1;
-          uid = `${licencia}#${licCounter[licencia]}`;
-        } else {
-          uid = (ruc || nombreCom || giro) ? `${ruc}|${nombreCom}|${giro}|${++rowIdx}` : String(++rowIdx);
-        }
-
         out.push({
-          id: uid,  // id único interno
+          id: (licencia ? `LIC-${licencia}` : `ROW-${++i}`), // id estable incluso si licencia se repite
           licencia, periodo, titular, ruc, dir, num, mz, lt, sector, giro,
           nombre_comercial:nombreCom,
           lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null
@@ -346,7 +382,7 @@
         const col=colorByHash(a.giro||a.sector||'N');
         return `
           <Placemark>
-            <name>${esc(displayName(a) || a.licencia || '')}</name>
+            <name>${esc(displayName(a))}</name>
             <Style><IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle><LabelStyle><scale>0.0</scale></LabelStyle></Style>
             <description><![CDATA[
               <b>Licencia:</b> ${esc(a.licencia)}<br/>
@@ -380,14 +416,6 @@
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
 
-    function labelForOption(a, has){
-      const name = displayName(a);
-      const fallback = name || a.giro || a.sector || a.dir || '—';
-      const lic = a.licencia || '(s/lic)';
-      const tag = has ? '✅' : '❌';
-      return `${tag} ${lic} — ${fallback}`;
-    }
-
     function rebuildPersonSelect(filterText=""){
       lastEditorFilter = filterText;
       const sectorNow = currentSector();
@@ -407,20 +435,22 @@
         });
       }
 
-      entries.sort((a,b)=> (displayName(a)||a.licencia||'').localeCompare((displayName(b)||b.licencia||''),'es'));
-
-      const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
-      const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
+      // ordenar: primero sin ubicación
+      const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)))
+                       .sort((a,b)=>displayName(a).localeCompare(displayName(b),'es'));
+      const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)))
+                       .sort((a,b)=>displayName(a).localeCompare(displayName(b),'es'));
 
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,false); g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,true); g.appendChild(o); }); sel.appendChild(g); }
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`❌ ${a.licencia || ''} — ${displayName(a) || '—'}`; g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=`✅ ${a.licencia || ''} — ${displayName(a) || '—'}`; g.appendChild(o); }); sel.appendChild(g); }
     }
 
     function enableAssignMode(){
       if(assignMode) return;
       if(!selectedId){ alert('Selecciona un negocio.'); return; }
       assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
+
       mapClickListener = map.addListener('click', (e)=>{
         const rec=getSelectedRecord(); if(!rec) return;
         const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
@@ -428,7 +458,6 @@
         if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
         rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
         refresh();
-        toast('Ubicación asignada.');
       });
     }
     function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
@@ -442,26 +471,54 @@
         'Lat': Number.isFinite(a.lat)?a.lat:'','Long': Number.isFinite(a.lng)?a.lng:''
       }));
     }
-    function downloadXlsx(){
-      const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-      const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
-      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios'); XLSX.writeFile(wb,'negocios_actualizado.xlsx');
+
+    /* ========== File System Access: Guardar en el mismo archivo ========== */
+    function supportsFS(){ return !!window.showOpenFilePicker && !!window.FileSystemWritableFileStream; }
+
+    async function verifyPermission(handle, write=false){
+      const opts = write ? { mode: 'readwrite' } : {};
+      if(await handle.queryPermission(opts) === 'granted') return true;
+      if(await handle.requestPermission(opts) === 'granted') return true;
+      return false;
     }
-    function downloadCsv(){
-      const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-      const lines=[headers.join(';')];
-      for(const r of rows){
-        const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; });
-        lines.push(vals.join(';'));
+
+    async function saveToSameFile(){
+      if(!fileHandle){ toast('Primero abre un Excel/CSV con “Abrir Excel/CSV”.', false); return; }
+      try{
+        if(!(await verifyPermission(fileHandle, true))){ toast('Permiso denegado para escribir el archivo.', false); return; }
+
+        let blob;
+        if(fileKind==='xlsx'){
+          const rows = toExportRows();
+          const headers = ['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+          const ws = XLSX.utils.json_to_sheet(rows,{header:headers});
+          const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios');
+          const ab = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+          blob = new Blob([ab], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        }else{
+          const rows = toExportRows();
+          const headers = ['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+          const lines=[headers.join(';')];
+          for(const r of rows){
+            const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; });
+            lines.push(vals.join(';'));
+          }
+          const csv='\uFEFF'+lines.join('\n');
+          blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        }
+
+        const ws = await fileHandle.createWritable();
+        await ws.write(blob);
+        await ws.close();
+        toast(`Guardado en: ${fileName}`);
+      }catch(err){
+        console.error(err);
+        toast('Error al guardar el archivo.', false);
       }
-      const csv='\uFEFF'+lines.join('\n'); downloadBlob('negocios_actualizado.csv', new Blob([csv],{type:'text/csv;charset=utf-8;'}));
     }
 
     /* ===== Init ===== */
     window.initMap = async function(){
-      // Tema inicial
       setTheme(localStorage.getItem('prefers-theme-negocios') || 'light');
 
       if(!(window.google && google.maps)){ alert('No cargó Google Maps. Revisa API key / referrers.'); return; }
@@ -471,7 +528,7 @@
       // Tema toggle
       document.getElementById('themeToggle').addEventListener('click', ()=>{ setTheme(theme()==='dark'?'light':'dark'); });
 
-      // Filtros principales
+      // Filtros
       document.getElementById('sectorFilter').addEventListener('change', ()=>{ refresh(); if (editMode) rebuildPersonSelect(lastEditorFilter); });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
@@ -482,18 +539,19 @@
         if(editMode){ rebuildPersonSelect(lastEditorFilter); }
       });
 
-      // Subfiltro del editor
       const editorInput = document.getElementById('editorFilter');
       editorInput.addEventListener('input', (e)=>{ rebuildPersonSelect(e.target.value||''); });
       editorInput.addEventListener('keydown', (e)=>{
         if(e.key==='Enter'){
           const lic = (e.target.value||'').trim();
           if(!lic) return;
-          // En lugar de auto-seleccionar una, filtramos la lista para esa licencia exacta
-          rebuildPersonSelect(lic);
-          const matches = allData.filter(a => String(a.licencia||'').toLowerCase() === lic.toLowerCase() && (currentSector()==='todos' || String(a.sector).toLowerCase()===String(currentSector()).toLowerCase()));
-          if(matches.length>1) toast(`Se encontraron ${matches.length} con licencia ${lic}. Elige uno.`, true);
-          if(matches.length===1){ selectedId = matches[0].id; document.getElementById('personSelect').value = selectedId; setCoordPreview(matches[0].lat,matches[0].lng); }
+          const rec = allData.find(a => String(a.licencia||'').toLowerCase() === lic.toLowerCase());
+          if(rec){
+            selectedId = String(rec.id);
+            document.getElementById('personSelect').value = selectedId;
+            setCoordPreview(rec.lat, rec.lng);
+            toast(`Seleccionado: Lic. ${rec.licencia}`);
+          }
         }
       });
 
@@ -501,10 +559,8 @@
       document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
       document.getElementById('btnCenter').addEventListener('click', centerOnSelected);
       document.getElementById('btnClear').addEventListener('click', clearLocation);
-      document.getElementById('btnExportXlsx').addEventListener('click', downloadXlsx);
-      document.getElementById('btnExportCsv').addEventListener('click', downloadCsv);
 
-      // Export
+      // Export descargas
       document.getElementById('btnKml').addEventListener('click', ()=>{
         const only=document.getElementById('onlyVisible').checked;
         const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
@@ -518,27 +574,52 @@
         const zip=new JSZip(); zip.file('doc.kml', buildKml(data)); const blob=await zip.generateAsync({type:'blob'}); downloadBlob('negocios_pachacamac.kmz', blob);
       });
 
+      // Export dataset
+      document.getElementById('btnExportXlsx').addEventListener('click', ()=>{
+        const rows=toExportRows();
+        const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+        const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
+        const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios'); XLSX.writeFile(wb,'negocios_actualizado.xlsx');
+      });
+      document.getElementById('btnExportCsv').addEventListener('click', ()=>{
+        const rows=toExportRows();
+        const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+        const lines=[headers.join(';')];
+        for(const r of rows){ const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; }); lines.push(vals.join(';')); }
+        const csv='\uFEFF'+lines.join('\n'); downloadBlob('negocios_actualizado.csv', new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+      });
+
+      // FS Access UI
+      const btnOpen = document.getElementById('btnOpenFile');
+      const btnSave = document.getElementById('btnSaveSame');
+      if(!supportsFS()){ btnOpen.disabled = true; btnSave.disabled = true; }
+      btnOpen.addEventListener('click', openDatasetFromDisk);
+      btnSave.addEventListener('click', saveToSameFile);
+
       // FAB offset
       adjustFabOffset(); new ResizeObserver(adjustFabOffset).observe(document.getElementById('exportBar')); window.addEventListener('resize', adjustFabOffset);
 
-      // Datos
+      // Carga automática (si existe archivo junto al HTML)
       try{
-        toast('Cargando datos…');
         const {rows, filename}=await autoLoad();
+        DATASET_ID = filename || 'dataset';
         allData = normRows(rows);
-        populateFilters();
-        rebuildPersonSelect('');
-        refresh();
+        populateFilters(); rebuildPersonSelect(''); refresh();
         toast(`Dataset: ${filename} (${allData.length} filas)`);
-      }catch(err){ toast(err.message, false); }
+      }catch(err){
+        // si no hay archivo en servidor, no es error fatal
+        console.info('AutoLoad:', err.message);
+      }
     };
   </script>
+
 
 
   <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
