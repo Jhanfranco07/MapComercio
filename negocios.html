@@ -6,13 +6,14 @@
   <title>Negocios — Mapa por Sector (Pachacámac)</title>
   <style>
     :root{
-      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#f3f4f6;
+      --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#0f172a0f;
       --export-h:56px; --fab-gap:16px;
     }
     [data-theme="dark"]{
       --brand:#60a5fa; --ink:#e5e7eb; --muted:#9aa4b2; --bg:#0b1220; --card:#0f172a; --ring:#1f2937; --chip:#0b1324;
     }
-    *{box-sizing:border-box} html,body{height:100%}
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--ink);
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,Arial,sans-serif;
@@ -36,7 +37,6 @@
     }
     .btn.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
     .btn:hover{box-shadow:0 8px 22px rgba(0,0,0,.10)} .btn:active{transform:translateY(1px)}
-    .btn:disabled{opacity:.45; cursor:not-allowed}
     [data-theme="dark"] .btn{ background:#0b1324; color:#e5e7eb; border-color:#223049 }
 
     .controls{
@@ -87,9 +87,6 @@
     [data-theme="dark"] .gm-style .gm-style-iw-d{ color:#e5e7eb !important }
     [data-theme="dark"] .gm-style .gm-style-iw-t::after{ background:#0b1324 !important }
 
-    /* Marcadores */
-    .marker-node svg{ filter: drop-shadow(0 2px 0 rgba(0,0,0,.08)); transition: transform .12s ease, filter .2s ease; }
-    .marker-node:hover svg{ transform: scale(1.06); filter: drop-shadow(0 6px 12px rgba(0,0,0,.18)); }
     @media (max-width:640px){
       .controls{ margin:8px } .stats{ padding:0 8px 8px }
     }
@@ -102,8 +99,6 @@
     <div class="top-actions">
       <a class="btn" href="index.html">↩️ Ir al mapa principal</a>
       <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span> <span id="themeText">Modo oscuro</span></button>
-      <button id="btnOpenFile" class="btn">📂 Abrir Excel/CSV</button>
-      <button id="btnSaveSame" class="btn primary" disabled>💾 Guardar (sobrescribir)</button>
     </div>
   </div>
 
@@ -111,6 +106,10 @@
     <div class="group">
       <label>🏘️ Sector</label>
       <select id="sectorFilter"><option value="todos">Todos</option></select>
+    </div>
+    <div class="group">
+      <label>🗓️ Año</label>
+      <select id="yearFilter"><option value="todos">Todos</option></select>
     </div>
     <div class="group" style="flex:1;min-width:240px">
       <label>🔎 Buscar</label>
@@ -123,6 +122,7 @@
 
   <div class="stats">
     <span class="chip">🗂️ Sectores: <b id="sectorCount">0</b></span>
+    <span class="chip">📅 Años activos: <b id="yearCount">0</b></span>
     <span class="chip">📍 Mostrando: <b id="visibleCount">0</b></span>
     <span class="chip">👥 Total: <b id="totalCount">0</b></span>
   </div>
@@ -145,8 +145,8 @@
 
   <div class="export" id="exportBar">
     <label><input type="checkbox" id="onlyVisible"> Exportar solo visibles</label>
-    <button id="btnKml" class="btn">⬇️ Descargar KML (por año)</button>
-    <button id="btnKmz" class="btn primary">⬇️ Descargar KMZ (por año)</button>
+    <button id="btnKml" class="btn">⬇️ Descargar KML</button>
+    <button id="btnKmz" class="btn primary">⬇️ Descargar KMZ</button>
     <div style="flex:1"></div>
   </div>
 
@@ -159,30 +159,27 @@
 
   <script>
     /* ===== Config ===== */
-    const DATA_CANDIDATES = ["negocios12.xlsx","negocios.csv"];
+    const DATA_CANDIDATES = ["negocios.xlsx","negocios.csv"];
     const MAP_ID_LIGHT = "TU_MAP_ID_CLARO";
     const MAP_ID_DARK  = "TU_MAP_ID_OSCURO";
     const CENTER = { lat: -12.155, lng: -76.870 };
 
     /* ===== Estado ===== */
     let map, infoWindow, markers=[];
-    let allData=[];                 // arreglo maestro
-    let editMode=false, assignMode=false, mapClickListener=null;
-    let selectedKey=null;           // índice global de allData (NO licencia)
+    let allData=[];
+    let editMode=false, assignMode=false, mapClickListener=null, selectedId="";
     let lastEditorFilter = "";
-    let fileHandle=null, fileName="", fileKind=""; // para Abrir/Guardar
 
     /* ===== Utils ===== */
     const normalizeKey = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,'_');
     const esc = t => String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const theme = () => document.documentElement.getAttribute('data-theme') || 'light';
-    const colorByHash = (txt)=>{ let h=0; const s=String(txt||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; const hue=h%360; return `hsl(${hue} 70% 50%)`; };
     const strokeForTheme = () => theme()==='dark' ? '#cbd5e1' : '#111827';
     function toast(msg, ok=true){ const el=document.getElementById('toast'); el.textContent=msg; el.style.background=ok?'#0ea5e9':'#ef4444'; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
     function adjustFabOffset(){ const h=(document.getElementById('exportBar')?.offsetHeight||56); document.documentElement.style.setProperty('--export-h', h+'px'); }
     const parseUbicacion = v => { if(!v) return {lat:null,lng:null}; const t=String(v).replace(/\s+/g,''); const [la,ln]=t.split(','); const lat=parseFloat(la), lng=parseFloat(ln); return {lat:Number.isFinite(lat)?lat:null, lng:Number.isFinite(lng)?lng:null}; };
 
-    // Buscar encabezados robusto
+    /* === helpers de columnas === */
     const findKey = (obj, tokens) => {
       const keys = Object.keys(obj);
       const ok = k => tokens.every(t => k.includes(t));
@@ -194,7 +191,26 @@
       return '';
     };
 
-    const displayName = a => (a.nombre_comercial || a.titular || a.licencia || '').trim();
+    /* ===== AÑO: parse + colores ===== */
+    const parseYear = (val) => {
+      const m = String(val||'').match(/(19|20)\d{2}/);
+      const y = m ? parseInt(m[0],10) : null;
+      return (y && y>=1990 && y<=2100) ? y : null;
+    };
+
+    const PALETTE_HEX = [
+      '#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#eab308','#3b82f6',
+      '#f97316','#22c55e','#d946ef','#06b6d4','#dc2626','#84cc16','#0ea5e9','#fb7185',
+      '#65a30d','#9333ea','#0284c7','#ca8a04'
+    ];
+    let YEAR_COLOR_MAP = {};
+    const colorForYear = (y) => YEAR_COLOR_MAP[String(y)] || '#94a3b8'; // gris para sin año
+    function buildYearColorMap(years){
+      YEAR_COLOR_MAP = {};
+      years.forEach((y,i)=>{ YEAR_COLOR_MAP[String(y)] = PALETTE_HEX[i % PALETTE_HEX.length]; });
+    }
+
+    const displayName = a => (a.nombre_comercial || a.titular || '').trim();
 
     /* ===== Map ===== */
     function svgIcon(fill, stroke){
@@ -208,8 +224,9 @@
       return `
         <div style="min-width:260px;max-width:380px;font-family:inherit">
           <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:6px 6px 0 0;margin:-8px -8px 8px -8px;font-weight:700">
-            ${esc(displayName(a) || '—')}
+            ${esc(displayName(a) || a.licencia || '—')}
           </div>
+          <div><b>Año:</b> ${a.anio ?? '-'}</div>
           <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
           <div><b>Periodo:</b> ${esc(a.periodo||'-')}</div>
           <div><b>Titular / Razón social:</b> ${esc(a.titular||'-')}</div>
@@ -228,19 +245,18 @@
       data.forEach(a=>{
         if(!Number.isFinite(a.lat)||!Number.isFinite(a.lng)) return;
         const pos={lat:a.lat,lng:a.lng};
-        const fill=colorByHash(a.giro||a.sector||'N');
+        const fill=colorForYear(a.anio);
         if(hasAdv){
           const node=document.createElement('div');
-          node.className='marker-node';
           node.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
             <circle cx="14" cy="14" r="11" fill="${fill}" />
             <circle cx="14" cy="14" r="12.5" fill="none" stroke="${ring}" stroke-width="3" />
           </svg>`;
-          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a),content:node});
+          const mk=new google.maps.marker.AdvancedMarkerElement({map,position:pos,title:displayName(a)||a.licencia,content:node});
           mk.addListener('gmp-click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.position);
         }else{
-          const mk=new google.maps.Marker({map,position:pos,title:displayName(a),icon:svgIcon(fill,ring)});
+          const mk=new google.maps.Marker({map,position:pos,title:displayName(a)||a.licencia,icon:svgIcon(fill,ring)});
           mk.addListener('click',()=>{ infoWindow.setContent(popupHtml(a)); infoWindow.open({anchor:mk,map}); });
           markers.push(mk); bounds.extend(mk.getPosition());
         }
@@ -250,19 +266,25 @@
 
     /* ===== Filtros ===== */
     const currentSector = () => document.getElementById('sectorFilter').value;
+    const currentYear = () => document.getElementById('yearFilter').value;
 
     function applyFilters(){
       const sector=currentSector();
+      const year=currentYear();
       const q=document.getElementById('searchInput').value.trim().toLowerCase();
       return allData.filter(a=>{
         const sOk = (sector==='todos') || (String(a.sector).toLowerCase()===String(sector).toLowerCase());
-        const qOk = !q || [a.nombre_comercial,a.titular,a.giro,a.dir,a.sector,a.licencia].some(v=>String(v||'').toLowerCase().includes(q));
-        return sOk && qOk;
+        const yOk = (year==='todos') || (String(a.anio)===String(year));
+        const qOk = !q || [a.nombre_comercial,a.titular,a.giro,a.dir,a.sector,a.licencia,a.periodo]
+          .some(v=>String(v||'').toLowerCase().includes(q));
+        return sOk && yOk && qOk;
       });
     }
     function updateStats(filtered){
       const sectores=[...new Set(allData.map(a=>a.sector).filter(Boolean))];
+      const years=[...new Set(allData.map(a=>a.anio).filter(Boolean))];
       document.getElementById('sectorCount').textContent=sectores.length;
+      document.getElementById('yearCount').textContent=years.length;
       document.getElementById('visibleCount').textContent=filtered.filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)).length;
       document.getElementById('totalCount').textContent=allData.length;
     }
@@ -270,15 +292,20 @@
       const sectores=[...new Set(allData.map(a=>a.sector).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
       const sel=document.getElementById('sectorFilter'); sel.innerHTML='<option value="todos">Todos</option>';
       sectores.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+
+      const years=[...new Set(allData.map(a=>a.anio).filter(Boolean))].sort((a,b)=>a-b); // asc
+      buildYearColorMap(years);
+      const ysel=document.getElementById('yearFilter'); ysel.innerHTML='<option value="todos">Todos</option>';
+      years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; ysel.appendChild(o); });
     }
     function refresh(){
       const f=applyFilters();
       renderMarkers(f);
       updateStats(f);
-      if (editMode) rebuildPersonSelect(lastEditorFilter); // respeta sector actual
+      if (editMode) rebuildPersonSelect(lastEditorFilter); // respeta sector y año
     }
 
-    /* ===== Carga datos (estático + abrir archivo) ===== */
+    /* ===== Carga datos ===== */
     async function loadFromUrl(name){
       const resp=await fetch(name); if(!resp.ok) throw new Error('No se pudo cargar '+name);
       const low=name.toLowerCase();
@@ -295,17 +322,22 @@
       throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
 
+    // IDs únicos aunque la LICENCIA se repita
     function normRows(rows){
-      const out=[];
-      let i=0;
+      const out=[]; let rowIdx=0;
+      const licCounter = Object.create(null);
+
       for(const row of rows){
         const n={}; for(const k of Object.keys(row)) n[normalizeKey(k)]=row[k];
 
         const licencia = String(pick(n, ['licencia'], ['licencia'])).trim();
         const periodo  = String(pick(n, ['periodo'], ['periodo'])).trim();
         const titular  = String(pick(n, [
-          'apellidos_y_nombres_/_razon_social','apellidos_y_nombres/_razon_social','apellidos_y_nombres_razon_social',
-          'apellidos_y_nombres','razon_social','titular','nombres_y_apellidos'
+          'apellidos_y_nombres_/_razon_social',
+          'apellidos_y_nombres/_razon_social',
+          'apellidos_y_nombres_razon_social',
+          'apellidos_y_nombres',
+          'razon_social','titular','nombres_y_apellidos'
         ], ['apellidos','nombres','razon','social'])).trim();
         const ruc      = String(pick(n, ['r_u_c_','ruc','r.u.c.','r_u_c'], ['r','u','c'])).trim();
         const dir      = String(pick(n, ['direccion_del_establecimiento_comercial','direccion'], ['direccion','establecimiento','comercial'])).trim();
@@ -322,9 +354,19 @@
           const p=parseUbicacion(pick(n, ['ubicacion'], ['ubicacion'])); lat=p.lat; lng=p.lng;
         }
 
+        const anio = parseYear(periodo);
+
+        let uid;
+        if (licencia) {
+          licCounter[licencia] = (licCounter[licencia] || 0) + 1;
+          uid = `${licencia}#${licCounter[licencia]}`;
+        } else {
+          uid = (ruc || nombreCom || giro) ? `${ruc}|${nombreCom}|${giro}|${++rowIdx}` : String(++rowIdx);
+        }
+
         out.push({
-          _row: i++,           // índice global (clave interna para evitar colisiones de licencias repetidas)
-          licencia, periodo, titular, ruc, dir, num, mz, lt, sector, giro,
+          id: uid, licencia, periodo, anio,
+          titular, ruc, dir, num, mz, lt, sector, giro,
           nombre_comercial:nombreCom,
           lat: Number.isFinite(lat)?lat:null, lng: Number.isFinite(lng)?lng:null
         });
@@ -332,29 +374,41 @@
       return out;
     }
 
-    /* ===== Export KML/KMZ agrupado por año ===== */
-    const YEAR_PALETTE = ['#1e88e5','#43a047','#f4511e','#8e24aa','#fb8c00','#00897b','#5e35b1','#d81b60','#3949ab','#00acc1'];
+    /* ===== Export KML/KMZ (agrupado por AÑO) ===== */
     const toHex=n=>n.toString(16).padStart(2,'0');
     function hexToKml(hex){ const h=hex.replace('#',''); const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16); return `ff${toHex(b)}${toHex(g)}${toHex(r)}`; }
-    function styleIdYear(y){ return 'year_'+String(y).replace(/\W/g,'_'); }
-    function getYear(a){ const m=String(a.periodo||'').match(/\b(19|20)\d{2}\b/); return m?m[0]:'Sin año'; }
+    const styleYearId = y => `y_${y}`;
 
     function buildKmlGroupedByYear(data){
-      const pts=data.filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
-      const years=[...new Set(pts.map(getYear))].sort((a,b)=>String(a).localeCompare(String(b),'es',{numeric:true}));
-      const styles=years.map((y,i)=>`
-        <Style id="${styleIdYear(y)}">
-          <IconStyle><color>${hexToKml(YEAR_PALETTE[i % YEAR_PALETTE.length])}</color><scale>1.2</scale></IconStyle>
-          <LabelStyle><scale>0.0</scale></LabelStyle>
-        </Style>`).join('\n');
+      const groups = new Map(); // year -> array
+      data.forEach(a=>{
+        const y = a.anio ?? 'Sin año';
+        if(!groups.has(y)) groups.set(y, []);
+        groups.get(y).push(a);
+      });
 
-      const folders = years.map((y)=>{
-        const subset = pts.filter(p=>getYear(p)===y);
-        const placemarks = subset.map(a=>`
+      // styles por año
+      const styles = Array.from(groups.keys()).map(y=>{
+        const col = colorForYear(y==='Sin año' ? null : y);
+        return `
+        <Style id="${styleYearId(y)}">
+          <IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle>
+          <LabelStyle><scale>0.0</scale></LabelStyle>
+        </Style>`;
+      }).join('\n');
+
+      const folders = Array.from(groups.entries()).sort(([a],[b])=>{
+        // 'Sin año' al final
+        if(a==='Sin año') return 1;
+        if(b==='Sin año') return -1;
+        return Number(a)-Number(b);
+      }).map(([y,arr])=>{
+        const placemarks = arr.filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)).map(a=>`
           <Placemark>
-            <name>${esc(displayName(a))}</name>
-            <styleUrl>#${styleIdYear(y)}</styleUrl>
+            <name>${esc(displayName(a) || a.licencia || '')}</name>
+            <styleUrl>#${styleYearId(y)}</styleUrl>
             <description><![CDATA[
+              <b>Año:</b> ${a.anio ?? '-'}<br/>
               <b>Licencia:</b> ${esc(a.licencia)}<br/>
               <b>Periodo:</b> ${esc(a.periodo)}<br/>
               <b>Titular:</b> ${esc(a.titular)}<br/>
@@ -365,13 +419,13 @@
             ]]></description>
             <Point><coordinates>${a.lng},${a.lat},0</coordinates></Point>
           </Placemark>`).join('\n');
-        return `<Folder><name>${esc(y)}</name>${placemarks}</Folder>`;
+        return `<Folder><name>${y}</name>${placemarks}</Folder>`;
       }).join('\n');
 
       return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Negocios — por año (Pachacámac)</name>
+    <name>Negocios — Pachacámac (Agrupado por Año)</name>
     ${styles}
     ${folders}
   </Document>
@@ -379,49 +433,37 @@
     }
     function downloadBlob(name, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(a.href), 1500); }
 
-    /* ===== Export dataset actualizado ===== */
-    function toExportRows(){
-      return allData.map(a=>({
-        'LICENCIA': a.licencia||'','PERIODO': a.periodo||'','APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
-        'R.U.C.': a.ruc||'','DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'','N°': a.num||'','MZ.': a.mz||'','LT.': a.lt||'',
-        'SECTOR': a.sector||'','GIRO DEL ESTABLECIMIENTO': a.giro||'','NOMBRE COMERCIAL': a.nombre_comercial||'',
-        'Lat': Number.isFinite(a.lat)?a.lat:'','Long': Number.isFinite(a.lng)?a.lng:''
-      }));
-    }
-    function downloadXlsxNow(){
-      const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-      const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
-      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios'); XLSX.writeFile(wb,'negocios_actualizado.xlsx');
-    }
-    function downloadCsvNow(){
-      const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-      const lines=[headers.join(';')];
-      for(const r of rows){
-        const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; });
-        lines.push(vals.join(';'));
-      }
-      const csv='\uFEFF'+lines.join('\n'); downloadBlob('negocios_actualizado.csv', new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-    }
-
     /* ===== Tema ===== */
     function applyThemeUI(th){ const i=document.getElementById('themeIcon'), t=document.getElementById('themeText'); if(th==='dark'){i.textContent='☀️'; t.textContent='Modo claro';} else {i.textContent='🌙'; t.textContent='Modo oscuro';} }
     const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
     function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
 
     /* ===== Editor ===== */
-    const getSelectedRecord = ()=> (selectedKey==null) ? null : allData[selectedKey];
+    const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
     function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: — , Lng: —'; }
+
+    function labelForOption(a, has){
+      const name = displayName(a);
+      const fallback = name || a.giro || a.sector || a.dir || '—';
+      const lic = a.licencia || '(s/lic)';
+      const year = a.anio ? ` · ${a.anio}` : '';
+      const tag = has ? '✅' : '❌';
+      return `${tag} ${lic}${year} — ${fallback}`;
+    }
 
     function rebuildPersonSelect(filterText=""){
       lastEditorFilter = filterText;
       const sectorNow = currentSector();
+      const yearNow = currentYear();
       const sel=document.getElementById('personSelect');
 
-      // Filtra por sector actual si no es "todos"
-      let entries = allData.map((a,idx)=>({...a,_idx:idx}));
-      if (sectorNow !== 'todos') entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
+      let entries = allData.slice();
+      if (sectorNow !== 'todos') {
+        entries = entries.filter(a => String(a.sector).toLowerCase() === String(sectorNow).toLowerCase());
+      }
+      if (yearNow !== 'todos') {
+        entries = entries.filter(a => String(a.anio) === String(yearNow));
+      }
 
       const f = filterText.trim().toLowerCase();
       if (f) {
@@ -432,127 +474,56 @@
         });
       }
 
-      // Orden por nombre para visualización (no altera índices globales)
-      entries.sort((a,b)=> displayName(a).localeCompare(displayName(b),'es'));
+      entries.sort((a,b)=> (displayName(a)||a.licencia||'').localeCompare((displayName(b)||b.licencia||''),'es'));
 
       const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
       const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
 
-      const mkLabel = (a, ok) => {
-        const left = a.licencia ? a.licencia : '—';
-        // agrega pequeñas pistas para diferenciar duplicados
-        const hint = [a.nombre_comercial||a.titular||'', a.sector||'', (a.dir||'').split(' ').slice(0,3).join(' ')].filter(Boolean).join(' · ');
-        return `${ok?'✅':'❌'} ${left} — ${hint}`.slice(0,120);
-      };
-
       sel.innerHTML='<option value="">Selecciona negocio…</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=String(a._idx); o.textContent=mkLabel(a,false); g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=String(a._idx); o.textContent=mkLabel(a,true); g.appendChild(o); }); sel.appendChild(g); }
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicación (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,false); g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicación (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,true); g.appendChild(o); }); sel.appendChild(g); }
     }
 
     function enableAssignMode(){
       if(assignMode) return;
-      if(selectedKey==null){ alert('Selecciona un negocio.'); return; }
+      if(!selectedId){ alert('Selecciona un negocio.'); return; }
       assignMode=true; document.getElementById('btnAssign').textContent='✅ Click en el mapa…'; document.body.style.cursor='crosshair';
       mapClickListener = map.addListener('click', (e)=>{
         const rec=getSelectedRecord(); if(!rec) return;
         const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
         assignMode=false; document.getElementById('btnAssign').textContent='📌 Asignar en el mapa'; document.body.style.cursor='default';
         if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
-        rebuildPersonSelect(lastEditorFilter);
-        document.getElementById('personSelect').value=String(rec._row);
+        rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
         refresh();
-        toast('Ubicación asignada');
+        toast('Ubicación asignada.');
       });
     }
     function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
-    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r._row); refresh(); }
+    function clearLocation(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } r.lat=null; r.lng=null; setCoordPreview(null,null); rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(r.id); refresh(); }
 
-    /* ===== File System Access (Abrir / Guardar mismo archivo) ===== */
-    function supportsFS(){ return 'showOpenFilePicker' in window && 'showSaveFilePicker' in window; }
-    async function verifyPermission(handle, write=false){
-      const opts = write ? { mode:'readwrite' } : {};
-      const q = await handle.queryPermission?.(opts);
-      if (q === 'granted') return true;
-      const r = await handle.requestPermission?.(opts);
-      return r === 'granted';
+    function toExportRows(){
+      return allData.map(a=>({
+        'LICENCIA': a.licencia||'','PERIODO': a.periodo||'','APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
+        'R.U.C.': a.ruc||'','DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'','N°': a.num||'','MZ.': a.mz||'','LT.': a.lt||'',
+        'SECTOR': a.sector||'','GIRO DEL ESTABLECIMIENTO': a.giro||'','NOMBRE COMERCIAL': a.nombre_comercial||'',
+        'Lat': Number.isFinite(a.lat)?a.lat:'','Long': Number.isFinite(a.lng)?a.lng:''
+      }));
     }
-    async function openDatasetFromDisk(){
-      if(!supportsFS()){ toast('Tu navegador no permite abrir archivos directamente.', false); return; }
-      try{
-        const [h] = await showOpenFilePicker({
-          types:[
-            { description:'Excel', accept:{ 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx'], 'application/vnd.ms-excel':['.xls'] } },
-            { description:'CSV',   accept:{ 'text/csv':['.csv'] } }
-          ],
-          excludeAcceptAllOption:false, multiple:false
-        });
-        fileHandle = h;
-        fileName = h.name || 'dataset';
-        const ext = fileName.toLowerCase().split('.').pop();
-        fileKind = (ext==='csv') ? 'csv' : 'xlsx';
-
-        const file = await h.getFile();
-        let rows;
-        if(fileKind==='xlsx'){
-          const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
-          const sh = wb.Sheets[wb.SheetNames[0]];
-          rows = XLSX.utils.sheet_to_json(sh,{defval:''});
-        }else{
-          const text = await file.text();
-          rows = await new Promise((res,rej)=>Papa.parse(text,{header:true,delimiter:text.includes(';')?';':',',skipEmptyLines:true,complete:o=>res(o.data),error:rej}));
-        }
-
-        allData = normRows(rows);
-        populateFilters();
-        rebuildPersonSelect('');
-        refresh();
-
-        document.getElementById('btnSaveSame').disabled = false;
-        toast(`Abierto: ${fileName} (${allData.length} filas)`);
-      }catch(err){
-        console.error(err);
-        toast('No se pudo abrir el archivo', false);
-      }
+    function downloadXlsx(){
+      const rows=toExportRows();
+      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+      const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
+      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios'); XLSX.writeFile(wb,'negocios_actualizado.xlsx');
     }
-    async function saveToSameFile(){
-      try{
-        if(!supportsFS()){ toast('Esta función requiere HTTPS o localhost.', false); return; }
-        // Construir blob desde allData
-        let blob;
-        if(fileKind === 'xlsx'){
-          const rows=toExportRows();
-          const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-          const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
-          const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios');
-          const ab=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-          blob=new Blob([ab],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-        }else{
-          const rows=toExportRows();
-          const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
-          const lines=[headers.join(';')];
-          for(const r of rows){ const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; }); lines.push(vals.join(';')); }
-          const csv='\uFEFF'+lines.join('\n'); blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-        }
-
-        if(!fileHandle || !(await verifyPermission(fileHandle,true))){
-          const suggested = fileName || (fileKind==='xlsx' ? 'negocios_actualizado.xlsx' : 'negocios_actualizado.csv');
-          const types = (fileKind==='xlsx')
-            ? [{ description:'Excel', accept:{ 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx'] } }]
-            : [{ description:'CSV', accept:{ 'text/csv':['.csv'] } }];
-          fileHandle = await showSaveFilePicker({ suggestedName: suggested, types });
-          fileName = fileHandle.name || suggested;
-          fileKind = fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx';
-        }
-
-        const ws = await fileHandle.createWritable();
-        await ws.write(blob);
-        await ws.close();
-        toast(`Guardado en: ${fileName}`);
-      }catch(err){
-        console.error(err);
-        toast('No se pudo guardar el archivo.', false);
+    function downloadCsv(){
+      const rows=toExportRows();
+      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','N°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+      const lines=[headers.join(';')];
+      for(const r of rows){
+        const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; });
+        lines.push(vals.join(';'));
       }
+      const csv='\uFEFF'+lines.join('\n'); downloadBlob('negocios_actualizado.csv', new Blob([csv],{type:'text/csv;charset=utf-8;'}));
     }
 
     /* ===== Init ===== */
@@ -569,89 +540,76 @@
 
       // Filtros principales
       document.getElementById('sectorFilter').addEventListener('change', ()=>{ refresh(); if (editMode) rebuildPersonSelect(lastEditorFilter); });
+      document.getElementById('yearFilter').addEventListener('change', ()=>{ refresh(); if (editMode) rebuildPersonSelect(lastEditorFilter); });
       document.getElementById('searchInput').addEventListener('input', refresh);
 
       // Editor
-      document.getElementById('toggleEdit').addEventListener('click', ()=>{ editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none'; if(!editMode && assignMode && mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; assignMode=false; document.body.style.cursor='default'; } if(editMode){ rebuildPersonSelect(lastEditorFilter); } });
+      document.getElementById('toggleEdit').addEventListener('click', ()=>{
+        editMode=!editMode; document.getElementById('editPanel').style.display=editMode?'flex':'none';
+        if(!editMode && assignMode && mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; assignMode=false; document.body.style.cursor='default'; }
+        if(editMode){ rebuildPersonSelect(lastEditorFilter); }
+      });
 
+      // Subfiltro del editor
       const editorInput = document.getElementById('editorFilter');
       editorInput.addEventListener('input', (e)=>{ rebuildPersonSelect(e.target.value||''); });
       editorInput.addEventListener('keydown', (e)=>{
         if(e.key==='Enter'){
-          const lic = (e.target.value||'').trim().toLowerCase();
+          const lic = (e.target.value||'').trim();
           if(!lic) return;
-          const sectorNow=currentSector();
-          let matches = allData.map((a,idx)=>({...a,_idx:idx}))
-            .filter(a => String(a.licencia||'').toLowerCase()===lic);
-          if(sectorNow!=='todos') matches = matches.filter(a => String(a.sector).toLowerCase()===String(sectorNow).toLowerCase());
-          if(matches.length===1){
-            selectedKey = matches[0]._idx;
-            document.getElementById('personSelect').value = String(selectedKey);
-            setCoordPreview(matches[0].lat, matches[0].lng);
-            toast(`Seleccionado: Lic. ${matches[0].licencia}`);
-          }else if(matches.length>1){
-            rebuildPersonSelect(lic);
-            toast(`Se encontraron ${matches.length} con esa licencia; elige en la lista.`);
-          }else{
-            toast('Sin coincidencias exactas.', false);
-          }
+          rebuildPersonSelect(lic);
+          const matches = allData.filter(a =>
+            String(a.licencia||'').toLowerCase() === lic.toLowerCase() &&
+            (currentSector()==='todos' || String(a.sector).toLowerCase()===String(currentSector()).toLowerCase()) &&
+            (currentYear()==='todos' || String(a.anio)===String(currentYear()))
+          );
+          if(matches.length>1) toast(`Se encontraron ${matches.length} con licencia ${lic}. Elige uno.`, true);
+          if(matches.length===1){ selectedId = matches[0].id; document.getElementById('personSelect').value = selectedId; setCoordPreview(matches[0].lat,matches[0].lng); }
         }
       });
 
-      document.getElementById('personSelect').addEventListener('change', (e)=>{ selectedKey = (e.target.value===""?null:parseInt(e.target.value,10)); const rec=getSelectedRecord(); if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng); else setCoordPreview(null,null); });
+      document.getElementById('personSelect').addEventListener('change', (e)=>{ selectedId=e.target.value||''; const rec=getSelectedRecord(); if(rec&&Number.isFinite(rec.lat)&&Number.isFinite(rec.lng)) setCoordPreview(rec.lat,rec.lng); else setCoordPreview(null,null); });
       document.getElementById('btnAssign').addEventListener('click', enableAssignMode);
       document.getElementById('btnCenter').addEventListener('click', centerOnSelected);
       document.getElementById('btnClear').addEventListener('click', clearLocation);
-      document.getElementById('btnExportXlsx').addEventListener('click', downloadXlsxNow);
-      document.getElementById('btnExportCsv').addEventListener('click', downloadCsvNow);
+      document.getElementById('btnExportXlsx').addEventListener('click', downloadXlsx);
+      document.getElementById('btnExportCsv').addEventListener('click', downloadCsv);
 
-      // Export KML/KMZ por año
+      // Export
       document.getElementById('btnKml').addEventListener('click', ()=>{
         const only=document.getElementById('onlyVisible').checked;
         const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
         if(!data.length) return toast('No hay datos para exportar', false);
-        const kml=buildKmlGroupedByYear(data);
-        downloadBlob('negocios_por_ano.kml', new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));
+        const kml=buildKmlGroupedByYear(data); downloadBlob('negocios_pachacamac.kml', new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));
       });
       document.getElementById('btnKmz').addEventListener('click', async ()=>{
         const only=document.getElementById('onlyVisible').checked;
         const data=(only?applyFilters():allData).filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng));
         if(!data.length) return toast('No hay datos para exportar', false);
-        const zip=new JSZip(); zip.file('doc.kml', buildKmlGroupedByYear(data)); const blob=await zip.generateAsync({type:'blob'}); downloadBlob('negocios_por_ano.kmz', blob);
+        const zip=new JSZip(); zip.file('doc.kml', buildKmlGroupedByYear(data)); const blob=await zip.generateAsync({type:'blob'}); downloadBlob('negocios_pachacamac.kmz', blob);
       });
 
       // FAB offset
       adjustFabOffset(); new ResizeObserver(adjustFabOffset).observe(document.getElementById('exportBar')); window.addEventListener('resize', adjustFabOffset);
 
-      // Abrir/Guardar (FS Access)
-      const btnOpen = document.getElementById('btnOpenFile');
-      const btnSave = document.getElementById('btnSaveSame');
-      if(!('showOpenFilePicker' in window)){ btnOpen.disabled = true; btnSave.disabled = true; }
-      btnOpen.addEventListener('click', openDatasetFromDisk);
-      btnSave.addEventListener('click', saveToSameFile);
-
-      // Datos iniciales desde archivos estáticos (si existen)
+      // Datos
       try{
         toast('Cargando datos…');
         const {rows, filename}=await autoLoad();
         allData = normRows(rows);
-        populateFilters(); rebuildPersonSelect(''); refresh();
+        populateFilters();
+        rebuildPersonSelect('');
+        refresh();
         toast(`Dataset: ${filename} (${allData.length} filas)`);
-      }catch(err){
-        // No hay archivos estáticos: no es error fatal
-        console.warn(err?.message||err);
-        toast('Puedes usar "Abrir Excel/CSV" para cargar tu archivo.');
-      }
+      }catch(err){ toast(err.message, false); }
     };
   </script>
-
-
-
 
   <!-- Google Maps) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
+
 
 
 
