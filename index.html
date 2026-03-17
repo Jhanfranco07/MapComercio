@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Mapa de Ambulantes — Pachacámac</title>
+<<<<<<< HEAD
   <style>
     /* ====== Diseño base + tema ====== */
     :root{
@@ -386,17 +387,32 @@
       }
     }
   </style>
+=======
+  <link rel="icon" href="/mapa1.svg" type="image/svg+xml">
+  <link rel="icon" href="/peruHigh-32x32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png">
+
+  <link rel="stylesheet" href="styles.css">
+>>>>>>> 62b5616 (as)
 </head>
 
 <body>
   <div class="hero fade-in">
+<<<<<<< HEAD
     <h1><span class="dot"></span> Mapa de Ambulantes Formales</h1>
+=======
+    <h1><span class="dot"></span> Mapa de Ambulantes Legales</h1>
+>>>>>>> 62b5616 (as)
     <p>Distrito de <b>Pachacámac</b> — Google Maps (vista interactiva) + exportación KML/KMZ</p>
   </div>
 
   <!-- Botón de tema -->
   <div class="theme">
+<<<<<<< HEAD
     <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span></button>
+=======
+    <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span> <span id="themeText">Modo oscuro</span></button>
+>>>>>>> 62b5616 (as)
   </div>
 
   <!-- Controles -->
@@ -429,6 +445,7 @@
   <!-- Mapa -->
   <div id="map" class="fade-in" style="animation-delay:.08s"></div>
 
+<<<<<<< HEAD
   <!-- Editor de ubicaciones -->
   <div class="controls editor">
     <div class="group" style="min-width:300px;flex:1">
@@ -448,6 +465,9 @@
   </div>
 
   <!-- FABs -->
+=======
+  <!-- FABs (fijos, evitan solaparse con export) -->
+>>>>>>> 62b5616 (as)
   <div class="map-fabs">
     <button class="fab" id="btnReset">↺ Reset filtros</button>
     <button class="fab" id="btnLoc">📍 Mi ubicación</button>
@@ -471,11 +491,17 @@
   <!-- Export -->
   <div class="export" id="exportBar">
     <label><input type="checkbox" id="onlyVisible"> Exportar solo visibles</label>
+<<<<<<< HEAD
     <button id="btnKml"  class="btn">⬇️ Descargar KML</button>
     <button id="btnKmz"  class="btn primary">⬇️ Descargar KMZ</button>
     <button id="btnXlsx" class="btn">💾 Dataset XLSX</button>
     <button id="btnCsv"  class="btn">⬇️ Dataset CSV</button>
     <span class="note-inline">• Para Google Earth, usa <b>KMZ</b>. Para editar datos, descarga <b>XLSX/CSV</b>.</span>
+=======
+    <button id="btnKml" class="btn" disabled>⬇️ Descargar KML</button>
+    <button id="btnKmz" class="btn primary" disabled>⬇️ Descargar KMZ</button>
+    <span class="note-inline">• Para Google Earth, prefiere <b>KMZ</b> (comprime y empaqueta iconos). Usa <b>KML</b> si editarás el XML.</span>
+>>>>>>> 62b5616 (as)
     <div style="flex:1"></div>
   </div>
 
@@ -487,6 +513,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
+<<<<<<< HEAD
   <script>
     /* ==================== Config ==================== */
     const DATA_CANDIDATES = [
@@ -1043,3 +1070,11 @@
 
 
 
+=======
+  <script src="script.js"></script>
+
+  <!-- Google Maps) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
+</body>
+</html>
+>>>>>>> 62b5616 (as)
