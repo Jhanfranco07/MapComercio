@@ -5,8 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa de Ambulantes - Pachacamac</title>
   <link rel="stylesheet" href="styles.css" />
+  <!-- Tailwind CSS (CDN) for a modern mobile-first UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- TypeScript in-browser transpile (modern dev experience without build step) -->
+  <script src="https://cdn.jsdelivr.net/npm/typescript@latest/lib/typescript.js"></script>
 </head>
-<body>
+<body class="min-h-screen bg-slate-50 text-slate-900">
   <header class="hero fade-in">
     <div class="theme">
       <button id="themeToggle" class="btn icon-only" type="button" aria-label="Cambiar tema">
@@ -107,7 +111,39 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="script.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDfZXJcPZHOEW_pdzEhOEdq17d4kBY3oT8&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
+  <script>
+    async function loadTypeScript(src) {
+      const res = await fetch(src);
+      const ts = await res.text();
+      const { outputText } = ts.transpileModule(ts, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2020,
+          module: ts.ModuleKind.ESNext
+        }
+      });
+      const blob = new Blob([outputText], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      await import(url);
+      URL.revokeObjectURL(url);
+    }
+
+    function loadGoogleMaps() {
+      const apiKey = '__GOOGLE_MAPS_API_KEY_INDEX__';
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&v=weekly&loading=async&libraries=marker`;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    (async () => {
+      try {
+        await loadTypeScript('script.ts');
+        loadGoogleMaps();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('toast')?.textContent = 'Error cargando la aplicación. Revisa la consola.';
+      }
+    })();
+  </script>
 </body>
 </html>

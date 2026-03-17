@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Visor — Ambulantes (Pachacámac)</title>
 
+  <!-- Tailwind CSS (CDN) for fast responsive styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- TypeScript in-browser transpile (modern developer experience without build step) -->
+  <script src="https://cdn.jsdelivr.net/npm/typescript@latest/lib/typescript.js"></script>
+
   <style>
     :root{
       --brand:#1a73e8;
@@ -346,7 +351,7 @@
   </style>
 </head>
 
-<body>
+<body class="min-h-screen bg-slate-50 text-slate-900">
   <div class="hero">
     <h1><span class="dot"></span> Visor de Ambulantes Formales</h1>
     <p>Distrito de <b>Pachacámac</b> — vista solo lectura</p>
@@ -409,7 +414,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <script>
+  <script type="text/template" id="visor-legacy">
     /* ==================== Config ==================== */
     const DATA_CANDIDATES = [
       "ambulantes_actualizado.xlsx","ambulantes_actualizado.csv",
@@ -778,7 +783,39 @@
     };
   </script>
 
-  <!-- Google Maps JS -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCRBvdy3NXKU7iJoRrh7CBJI-5fwa1N7D0&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
+  <script>
+    async function loadTypeScript(src) {
+      const res = await fetch(src);
+      const ts = await res.text();
+      const { outputText } = ts.transpileModule(ts, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2020,
+          module: ts.ModuleKind.ESNext
+        }
+      });
+      const blob = new Blob([outputText], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      await import(url);
+      URL.revokeObjectURL(url);
+    }
+
+    function loadGoogleMaps() {
+      const apiKey = '__GOOGLE_MAPS_API_KEY_VISOR__';
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&v=weekly&loading=async&libraries=marker`;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    (async () => {
+      try {
+        await loadTypeScript('visor.ts');
+        loadGoogleMaps();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('toast')?.textContent = 'Error cargando el visor. Revisa la consola.';
+      }
+    })();
+  </script>
 </body>
 </html>
