@@ -97,6 +97,20 @@ main {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
+.viewer-hero .hero-copy {
+  max-width: 760px;
+}
+
+.viewer-hero h1 {
+  display: block;
+  margin: 0;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  letter-spacing: 0.03em;
+  line-height: 1.08;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
 .main-hero {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
@@ -748,7 +762,9 @@ button:focus-visible {
   }
 
   .viewer-hero h1 {
-    max-width: 240px;
+    max-width: 280px;
+    font-size: 1.65rem;
+    letter-spacing: 0.02em;
   }
 
   .viewer-controls label {
