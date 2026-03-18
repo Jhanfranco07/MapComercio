@@ -209,13 +209,13 @@ function popupHtml(record) {
   return `
     <div class="leaflet-popup-card">
       <div class="leaflet-popup-title">${escapeHtml(record.nombre || "Sin nombre")}</div>
+      <div><b>Certificado:</b> ${escapeHtml(record.licencia || "-")}</div>
       <div><b>Giro:</b> ${escapeHtml(record.giro || "-")}</div>
       <div><b>Productos:</b> ${escapeHtml(record.productos || "-")}</div>
       <div><b>Zona:</b> ${escapeHtml(record.zona || "-")}</div>
       <div><b>Lugar exacto:</b> ${escapeHtml(record.lugar_exacto || "-")}</div>
       <div><b>Turno:</b> ${turnoLabel(record.turno)}</div>
       <div><b>Horario:</b> ${escapeHtml(record.horario || "-")}</div>
-      <div><b>Licencia:</b> ${escapeHtml(record.licencia || "-")}</div>
       <div><b>Vigencia:</b> ${escapeHtml(record.vigencia || "-")}</div>
     </div>`;
 }

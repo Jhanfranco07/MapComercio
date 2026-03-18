@@ -164,13 +164,13 @@ function visorPopupHtml(record) {
   return `
     <div class="leaflet-popup-card">
       <div class="leaflet-popup-title">${visorEscapeHtml(record.nombre || "Sin nombre")}</div>
+      <div><b>Certificado:</b> ${visorEscapeHtml(record.licencia || "-")}</div>
       <div><b>Giro:</b> ${visorEscapeHtml(record.giro || "-")}</div>
       <div><b>Productos:</b> ${visorEscapeHtml(record.productos || "-")}</div>
       <div><b>Zona:</b> ${visorEscapeHtml(record.zona || "-")}</div>
       <div><b>Lugar exacto:</b> ${visorEscapeHtml(record.lugar_exacto || "-")}</div>
       <div><b>Turno:</b> ${visorTurnoLabel(record.turno)}</div>
       <div><b>Horario:</b> ${visorEscapeHtml(record.horario || "-")}</div>
-      <div><b>Licencia:</b> ${visorEscapeHtml(record.licencia || "-")}</div>
       <div><b>Vigencia:</b> ${visorEscapeHtml(record.vigencia || "-")}</div>
     </div>`;
 }
