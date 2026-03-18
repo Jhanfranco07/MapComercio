@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Visor — Ambulantes (Pachacámac)</title>
+  <title>Visor â€” Ambulantes (PachacÃ¡mac)</title>
 
   <!-- Tailwind CSS (CDN) for fast responsive styling -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -232,7 +232,7 @@
     [data-theme="dark"] .gm-style .gm-style-iw-t::after{ background:#0b1324 !important; }
 
     @media (max-width: 768px){
-      /* Hero: más compacto */
+      /* Hero: mÃ¡s compacto */
       .hero{
         padding:12px 16px 8px 16px;
         gap:4px;
@@ -247,7 +247,7 @@
         font-size:11px; padding:5px 8px;
       }
 
-      /* Tema: más grande */
+      /* Tema: mÃ¡s grande */
       .theme{
         right: 12px; top: 10px;
       }
@@ -354,44 +354,44 @@
 <body class="min-h-screen bg-slate-50 text-slate-900">
   <div class="hero">
     <h1><span class="dot"></span> Visor de Ambulantes Formales</h1>
-    <p>Distrito de <b>Pachacámac</b> — vista solo lectura</p>
-    <span class="badge">🔒 Solo lectura • Sin edición • Sin descargas</span>
+    <p>Distrito de <b>PachacÃ¡mac</b> â€” vista solo lectura</p>
+    <span class="badge">ðŸ”’ Solo lectura â€¢ Sin ediciÃ³n â€¢ Sin descargas</span>
   </div>
 
   <div class="theme">
-    <button id="themeToggle" class="btn"><span id="themeIcon">🌙</span></button>
+    <button id="themeToggle" class="btn"><span id="themeIcon">ðŸŒ™</span></button>
   </div>
 
   <div class="controls">
     <div class="group">
-      <label>🏷️ Rubro</label>
+      <label>ðŸ·ï¸ Rubro</label>
       <select id="giroFilter"><option value="todos">Todos</option></select>
     </div>
     <div class="group">
-      <label>🕐 Turno</label>
+      <label>ðŸ• Turno</label>
       <select id="turnoFilter">
         <option value="todos">Todos</option>
-        <option value="manana">Mañana</option>
+        <option value="manana">MaÃ±ana</option>
         <option value="tarde">Tarde</option>
       </select>
     </div>
     <div class="group" style="flex:1;min-width:260px">
-      <label>🔎 Buscar</label>
-      <input id="searchInput" class="search" placeholder="Nombre, productos, zona…"/>
+      <label>ðŸ”Ž Buscar</label>
+      <input id="searchInput" class="search" placeholder="Nombre, productos, zonaâ€¦"/>
     </div>
   </div>
 
   <div class="stats">
-    <span class="chip">👥 Total: <b id="totalCount">0</b></span>
-    <span class="chip">📍 Mostrando: <b id="visibleCount">0</b></span>
-    <span class="chip">🏪 Zonas activas: <b id="activeZones">0</b></span>
+    <span class="chip">ðŸ‘¥ Total: <b id="totalCount">0</b></span>
+    <span class="chip">ðŸ“ Mostrando: <b id="visibleCount">0</b></span>
+    <span class="chip">ðŸª Zonas activas: <b id="activeZones">0</b></span>
   </div>
 
   <div id="map"></div>
 
   <div class="map-fabs">
-    <button class="fab" id="btnReset">↺ Reset filtros</button>
-    <button class="fab" id="btnLoc">📍 Mi ubicación</button>
+    <button class="fab" id="btnReset">â†º Reset filtros</button>
+    <button class="fab" id="btnLoc">ðŸ“ Mi ubicaciÃ³n</button>
   </div>
 
   <div class="legend-dock">
@@ -402,13 +402,13 @@
     <div class="legend-block">
       <h3>Leyenda por turno (borde)</h3>
       <div class="legend-items">
-        <div class="legend-item"><span class="legend-ring" style="border-color:#f59e0b"></span> 🌅 Mañana</div>
-        <div class="legend-item"><span class="legend-ring" style="border-color:#6366f1"></span> 🌆 Tarde</div>
+        <div class="legend-item"><span class="legend-ring" style="border-color:#f59e0b"></span> ðŸŒ… MaÃ±ana</div>
+        <div class="legend-item"><span class="legend-ring" style="border-color:#6366f1"></span> ðŸŒ† Tarde</div>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="toast">Cargando datos…</div>
+  <div id="toast" class="toast">Cargando datosâ€¦</div>
 
   <!-- Libs (solo lectura: cargar XLSX/CSV) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -458,7 +458,7 @@
     function normalizeTurno(v){
       const k=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if(k.includes('tarde')) return 'tarde';
-      if(k.includes('manana')||k.includes('mañana')) return 'manana';
+      if(k.includes('manana')||k.includes('maÃ±ana')) return 'manana';
       return '';
     }
 
@@ -523,7 +523,7 @@
         <div><b>Productos:</b> ${esc(a.productos||'-')}</div>
         <div><b>Zona:</b> ${esc(a.zona||'-')}</div>
         <div><b>Lugar exacto:</b> ${esc(a.lugar_exacto||'-')}</div>
-        <div><b>Turno:</b> ${a.turno==='manana'?'Mañana':'Tarde'}</div>
+        <div><b>Turno:</b> ${a.turno==='manana'?'MaÃ±ana':'Tarde'}</div>
         <div><b>Horario:</b> ${esc(a.horario||'-')}</div>
         <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
         <div><b>Vigencia:</b> ${esc(a.vigencia||'-')}</div>
@@ -664,7 +664,7 @@
       for(const n of DATA_CANDIDATES){
         try{ return {rows: await loadFromUrl(n), filename:n}; }catch(_){}
       }
-      throw new Error(`No encontré ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
+      throw new Error(`No encontrÃ© ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
 
     function normalizeRows(rows){
@@ -705,8 +705,8 @@
     /* ==================== Tema ==================== */
     function applyThemeUI(th){
       const icon = document.getElementById('themeIcon');
-      if(th==='dark'){ icon.textContent='☀️'; }
-      else { icon.textContent='🌙'; }
+      if(th==='dark'){ icon.textContent='â˜€ï¸'; }
+      else { icon.textContent='ðŸŒ™'; }
     }
     function mapIdForTheme(th){ return th==='dark' ? (MAP_ID_DARK || null) : (MAP_ID_LIGHT || null); }
     function switchMapId(th){
@@ -726,7 +726,7 @@
       setTheme(saved || 'light');
 
       if(!(window.google && google.maps)){
-        alert('No cargó Google Maps. Revisa tu API key / referrers.');
+        alert('No cargÃ³ Google Maps. Revisa tu API key / referrers.');
         return;
       }
 
@@ -759,16 +759,16 @@
       });
 
       document.getElementById('btnLoc').addEventListener('click', ()=>{
-        if(!navigator.geolocation){ toast('Geolocalización no disponible', false); return; }
+        if(!navigator.geolocation){ toast('GeolocalizaciÃ³n no disponible', false); return; }
         navigator.geolocation.getCurrentPosition(pos=>{
           const {latitude:lat, longitude:lng} = pos.coords;
           map.panTo({lat,lng}); map.setZoom(16);
-        }, ()=>toast('No se pudo obtener tu ubicación', false), {enableHighAccuracy:true,timeout:8000,maximumAge:0});
+        }, ()=>toast('No se pudo obtener tu ubicaciÃ³n', false), {enableHighAccuracy:true,timeout:8000,maximumAge:0});
       });
 
       // Datos
       try{
-        toast('Cargando datos…');
+        toast('Cargando datosâ€¦');
         const {rows, filename} = await autoLoad();
 
         // SOLO LECTURA: nos quedamos con los que ya tienen coordenadas
@@ -800,7 +800,7 @@
     }
 
     function loadGoogleMaps() {
-      const apiKey = '__GOOGLE_MAPS_API_KEY_VISOR__';
+      const apiKey = 'AIzaSyAQeYy095tt1Qy9w9cpEVGwDZevaFL7v1M';
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&v=weekly&loading=async&libraries=marker`;
       script.defer = true;
