@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mapa de Ambulantes - Pachacamac</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Tailwind CSS (CDN) for a modern mobile-first UI -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- TypeScript in-browser transpile (modern dev experience without build step) -->
-  <script src="https://cdn.jsdelivr.net/npm/typescript@latest/lib/typescript.js"></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
   <header class="hero fade-in">
@@ -111,22 +108,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="script.js"></script>
   <script>
-    async function loadTypeScript(src) {
-      const res = await fetch(src);
-      const ts = await res.text();
-      const { outputText } = ts.transpileModule(ts, {
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2020,
-          module: ts.ModuleKind.ESNext
-        }
-      });
-      const blob = new Blob([outputText], { type: 'application/javascript' });
-      const url = URL.createObjectURL(blob);
-      await import(url);
-      URL.revokeObjectURL(url);
-    }
-
     function loadGoogleMaps() {
       const apiKey = '__GOOGLE_MAPS_API_KEY_INDEX__';
       const script = document.createElement('script');
@@ -135,15 +118,7 @@
       document.head.appendChild(script);
     }
 
-    (async () => {
-      try {
-        await loadTypeScript('script.ts');
-        loadGoogleMaps();
-      } catch (err) {
-        console.error(err);
-        document.getElementById('toast')?.textContent = 'Error cargando la aplicación. Revisa la consola.';
-      }
-    })();
+    loadGoogleMaps();
   </script>
 </body>
 </html>

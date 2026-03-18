@@ -1,4 +1,4 @@
-{
+﻿{
   "version": 2,
   "buildCommand": "python3 build.py",
   "builds": [
@@ -6,6 +6,7 @@
     { "src": "negocios.html", "use": "@vercel/static" },
     { "src": "visor_ambulantes.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
+    { "src": "script.js", "use": "@vercel/static" },
     { "src": "script.ts", "use": "@vercel/static" },
     { "src": "visor.ts", "use": "@vercel/static" },
     { "src": "comercio_actualizado.csv", "use": "@vercel/static" },
