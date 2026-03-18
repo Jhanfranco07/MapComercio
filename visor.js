@@ -18,7 +18,7 @@ const VISOR_PALETTE = [
 
 const VISOR_TILE_LAYERS = {
   light: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     options: { attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }
   },
   dark: {

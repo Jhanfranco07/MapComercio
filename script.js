@@ -18,9 +18,9 @@ const PALETTE_HEX = [
 
 const TILE_LAYERS = {
   light: {
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     options: {
-      attribution: 'Tiles &copy; Esri'
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }
   },
   dark: {
