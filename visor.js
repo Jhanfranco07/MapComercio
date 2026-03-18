@@ -6,7 +6,7 @@ const VISOR_DATA_CANDIDATES = [
 ];
 
 const VISOR_CENTER = { lat: -12.155, lng: -76.87 };
-const VISOR_TURNO_LABELS = { manana: "Manana", tarde: "Tarde" };
+const VISOR_TURNO_LABELS = { manana: "Mañana", tarde: "Tarde" };
 const VISOR_TURNO_STROKES = { manana: "#f59e0b", tarde: "#6366f1" };
 const VISOR_OVERRIDE_COLORS = { asedipa: "#22c55e" };
 const VISOR_PALETTE = [
@@ -429,7 +429,7 @@ function visorAttachUiEvents() {
       (position) => {
         visorState.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.7, animate: true });
       },
-      () => visorToast("No se pudo obtener tu ubicacion.", false),
+      () => visorToast("No se pudo obtener tu ubicación.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });

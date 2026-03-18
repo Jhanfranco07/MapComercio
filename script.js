@@ -6,7 +6,7 @@ const DATA_CANDIDATES = [
 ];
 
 const PACHACAMAC_CENTER = { lat: -12.155, lng: -76.87 };
-const TURNO_LABELS = { manana: "Manana", tarde: "Tarde" };
+const TURNO_LABELS = { manana: "Mañana", tarde: "Tarde" };
 const TURNO_STROKES = { manana: "#f59e0b", tarde: "#6366f1" };
 const OVERRIDE_COLORS = { asedipa: "#22c55e" };
 const PALETTE_HEX = [
@@ -404,8 +404,8 @@ function rebuildPersonSelect() {
     ui.personSelect.appendChild(group);
   };
 
-  appendGroup("Sin ubicacion", withoutLocation, false);
-  appendGroup("Con ubicacion", withLocation, true);
+  appendGroup("Sin ubicación", withoutLocation, false);
+  appendGroup("Con ubicación", withLocation, true);
 
   if (state.selectedId) ui.personSelect.value = String(state.selectedId);
 }
@@ -461,7 +461,7 @@ function centerOnSelected() {
     state.map.flyTo([record.lat, record.lng], 17, { duration: 0.8 });
   } else {
     state.map.flyTo([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 14, { duration: 0.8 });
-    toast("La persona seleccionada aun no tiene ubicacion.", false);
+    toast("La persona seleccionada aún no tiene ubicación.", false);
   }
 }
 
@@ -606,9 +606,9 @@ function buildKml(data) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Ambulantes - Pachacamac</name>
+    <name>Ambulantes - Pachacámac</name>
     ${styles}
-    ${buildFolder("Manana", manana)}
+    ${buildFolder("Mañana", manana)}
     ${buildFolder("Tarde", tarde)}
   </Document>
 </kml>`;
@@ -739,7 +739,7 @@ function attachUiEvents() {
       (position) => {
         state.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.8 });
       },
-      () => toast("No se pudo obtener tu ubicacion.", false),
+      () => toast("No se pudo obtener tu ubicación.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mapa de Ambulantes - Pachacamac</title>
+  <title>Mapa de Ambulantes - Pachacámac</title>
   <link rel="stylesheet" href="styles.css" />
   <link
     rel="stylesheet"
@@ -38,7 +38,7 @@
         <label for="turnoFilter">Turno</label>
         <select id="turnoFilter">
           <option value="todos">Todos</option>
-          <option value="manana">Manana</option>
+          <option value="manana">Mañana</option>
           <option value="tarde">Tarde</option>
         </select>
       </div>
@@ -53,7 +53,7 @@
       <span class="chip">Total: <strong id="totalCount">0</strong></span>
       <span class="chip">Mostrando: <strong id="visibleCount">0</strong></span>
       <span class="chip">Zonas activas: <strong id="activeZones">0</strong></span>
-      <span class="chip">Sin ubicacion: <strong id="missingCount">0</strong></span>
+      <span class="chip">Sin ubicación: <strong id="missingCount">0</strong></span>
     </section>
 
     <section id="map" class="fade-in main-map" style="animation-delay: .08s" aria-label="Mapa interactivo"></section>
@@ -69,7 +69,7 @@
       <div class="group action-group">
         <button id="btnAssign" class="btn primary" type="button">Asignar en el mapa</button>
         <button id="btnCenter" class="btn" type="button">Centrar</button>
-        <button id="btnClear" class="btn" type="button">Quitar ubicacion</button>
+        <button id="btnClear" class="btn" type="button">Quitar ubicación</button>
       </div>
 
       <p id="coordPreview" class="coord" aria-live="polite">Lat: -, Lng: -</p>
@@ -78,7 +78,7 @@
     <div class="map-fabs" aria-label="Acciones rapidas">
       <button class="fab mobile-filter-toggle" id="btnFilters" type="button" aria-expanded="false" aria-controls="mainFilters">Filtros</button>
       <button class="fab" id="btnReset" type="button">Reset filtros</button>
-      <button class="fab" id="btnLoc" type="button">Mi ubicacion</button>
+      <button class="fab" id="btnLoc" type="button">Mi ubicación</button>
     </div>
 
     <section class="legend-dock">
@@ -90,7 +90,7 @@
       <div class="legend-block">
         <h2>Leyenda por Turno</h2>
         <div class="legend-items">
-          <div class="legend-item static"><span class="legend-ring manana"></span> Manana</div>
+          <div class="legend-item static"><span class="legend-ring manana"></span> Mañana</div>
           <div class="legend-item static"><span class="legend-ring tarde"></span> Tarde</div>
         </div>
       </div>
