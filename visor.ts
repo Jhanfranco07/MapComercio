@@ -1,3 +1,5 @@
+﻿export {};
+
 /* TypeScript-style viewer for ambulantes (read-only). */
 
 declare const XLSX: any;
@@ -39,7 +41,7 @@ const MAP_ID_LIGHT = "REEMPLAZA_CON_TU_MAP_ID_CLARO";
 const MAP_ID_DARK = "REEMPLAZA_CON_TU_MAP_ID_OSCURO";
 const PACHACAMAC_CENTER = { lat: -12.155, lng: -76.87 };
 
-const TURNO_STROKES = { manana: "#f59e0b", tarde: "#6366f1" };
+const TURNO_STROKES: Record<string, string> = { manana: "#f59e0b", tarde: "#6366f1" };
 const strokeForTurno = (turno: string) => TURNO_STROKES[turno] || TURNO_STROKES.manana;
 
 /* ==================== Estado ==================== */
@@ -89,7 +91,7 @@ function normalizeTurno(v: unknown) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
   if (k.includes("tarde")) return "tarde";
-  if (k.includes("manana") || k.includes("mañana")) return "manana";
+  if (k.includes("manana") || k.includes("maÃ±ana")) return "manana";
   return "";
 }
 
@@ -156,14 +158,14 @@ function popupHtml(a: any) {
   return `
     <div style="min-width:260px;max-width:360px;font-family:inherit">
       <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:8px 8px 0 0;margin:-8px -8px 10px -8px;font-weight:700">
-        ${esc(a.nombre_comercial || a.licencia || "—")}
+        ${esc(a.nombre_comercial || a.licencia || "â€”")}
       </div>
-      <div><b>Año:</b> ${a.anio ?? "-"}</div>
+      <div><b>AÃ±o:</b> ${a.anio ?? "-"}</div>
       <div><b>Licencia:</b> ${esc(a.licencia || "-")}</div>
       <div><b>Periodo:</b> ${esc(a.periodo || "-")}</div>
-      <div><b>Titular / Razón social:</b> ${esc(a.titular || "-")}</div>
+      <div><b>Titular / RazÃ³n social:</b> ${esc(a.titular || "-")}</div>
       <div><b>RUC:</b> ${esc(a.ruc || "-")}</div>
-      <div><b>Dirección:</b> ${esc(a.dir || "-")} ${a.num ? "N° " + esc(a.num) : ""} ${
+      <div><b>DirecciÃ³n:</b> ${esc(a.dir || "-")} ${a.num ? "NÂ° " + esc(a.num) : ""} ${
     a.mz ? " MZ. " + esc(a.mz) : ""
   } ${a.lt ? " LT. " + esc(a.lt) : ""}</div>
       <div><b>Sector:</b> ${esc(a.sector || "-")}</div>
@@ -294,7 +296,7 @@ async function autoLoad() {
     }
   }
 
-  throw new Error(`No encontré ${DATA_CANDIDATES.join(" / ")} junto al HTML. Detalles: ${errors.join(" | ")}`);
+  throw new Error(`No encontrÃ© ${DATA_CANDIDATES.join(" / ")} junto al HTML. Detalles: ${errors.join(" | ")}`);
 }
 
 function normRows(rows: RecordRow[]): Business[] {
@@ -338,7 +340,7 @@ function normRows(rows: RecordRow[]): Business[] {
     ).trim();
 
     const num = String(
-      [n["n°"], n["n"], n["numero"]].find(Boolean) || ""
+      [n["nÂ°"], n["n"], n["numero"]].find(Boolean) || ""
     ).trim();
 
     const mz = String([n["mz."], n["mz"]].find(Boolean) || "").trim();
@@ -495,7 +497,7 @@ async function initMap() {
   document.getElementById("searchInput")?.addEventListener("input", refresh);
 
   try {
-    toast("Cargando datos…");
+    toast("Cargando datosâ€¦");
     const { rows, filename } = await autoLoad();
     allData = normRows(rows);
     populateFilters();
@@ -508,3 +510,4 @@ async function initMap() {
 }
 
 (window as any).initMap = initMap;
+

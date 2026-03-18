@@ -1,3 +1,5 @@
+﻿export {};
+
 /* TypeScript-style main logic for the ambulantes map.
    This file is loaded at runtime by transpiling from TS -> JS in the browser.
    It is intentionally written in modern ES modules style and uses type hints for clarity.
@@ -44,9 +46,9 @@ const MAP_ID_LIGHT = "REEMPLAZA_CON_TU_MAP_ID_CLARO";
 const MAP_ID_DARK = "REEMPLAZA_CON_TU_MAP_ID_OSCURO";
 const PACHACAMAC_CENTER = { lat: -12.155, lng: -76.87 };
 
-const TURNO_LABELS = { manana: "Mañana", tarde: "Tarde" };
-const TURNO_STROKES = { manana: "#f59e0b", tarde: "#6366f1" };
-const OVERRIDE_COLORS = { asedipa: "#22c55e" };
+const TURNO_LABELS: Record<string, string> = { manana: "Manana", tarde: "Tarde" };
+const TURNO_STROKES: Record<string, string> = { manana: "#f59e0b", tarde: "#6366f1" };
+const OVERRIDE_COLORS: Record<string, string> = { asedipa: "#22c55e" };
 
 const PALETTE_HEX = [
   "#2563eb", "#8b5cf6", "#ef4444", "#f59e0b", "#06b6d4", "#f472b6", "#a855f7", "#eab308",
@@ -123,7 +125,7 @@ const normalizeTurno = (value: unknown) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
   if (normalized.includes("tarde")) return "tarde";
-  if (normalized.includes("manana") || normalized.includes("mañana")) return "manana";
+  if (normalized.includes("manana") || normalized.includes("maÃ±ana")) return "manana";
   return "";
 };
 
@@ -193,14 +195,14 @@ const svgIcon = (fill: string, stroke: string) => {
 const buildKmlGroupedByYear = (data: Business[]) => {
   const groups = new Map<string | number, Business[]>();
   data.forEach((a) => {
-    const y = a.anio ?? "Sin año";
+    const y = a.anio ?? "Sin aÃ±o";
     if (!groups.has(y)) groups.set(y, []);
     groups.get(y)!.push(a);
   });
 
   const styles = Array.from(groups.keys())
     .map((y) => {
-      const col = colorForYear(y === "Sin año" ? null : (y as number));
+      const col = colorForYear(y === "Sin aÃ±o" ? null : (y as number));
       return `
         <Style id="y_${y}">
           <IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle>
@@ -211,8 +213,8 @@ const buildKmlGroupedByYear = (data: Business[]) => {
 
   const folders = Array.from(groups.entries())
     .sort(([a], [b]) => {
-      if (a === "Sin año") return 1;
-      if (b === "Sin año") return -1;
+      if (a === "Sin aÃ±o") return 1;
+      if (b === "Sin aÃ±o") return -1;
       return Number(a) - Number(b);
     })
     .map(([y, arr]) => {
@@ -224,12 +226,12 @@ const buildKmlGroupedByYear = (data: Business[]) => {
             <name>${escapeHtml(a.nombre_comercial || a.licencia || "")}</name>
             <styleUrl>#y_${y}</styleUrl>
             <description><![CDATA[
-              <b>Año:</b> ${a.anio ?? "-"}<br/>
+              <b>AÃ±o:</b> ${a.anio ?? "-"}<br/>
               <b>Licencia:</b> ${escapeHtml(a.licencia)}<br/>
               <b>Periodo:</b> ${escapeHtml(a.periodo)}<br/>
               <b>Titular:</b> ${escapeHtml(a.titular)}<br/>
               <b>RUC:</b> ${escapeHtml(a.ruc)}<br/>
-              <b>Dirección:</b> ${escapeHtml(a.dir)} ${a.num ? "N° " + escapeHtml(a.num) : ""} ${
+              <b>DirecciÃ³n:</b> ${escapeHtml(a.dir)} ${a.num ? "NÂ° " + escapeHtml(a.num) : ""} ${
             a.mz ? " MZ. " + escapeHtml(a.mz) : ""
           } ${a.lt ? " LT. " + escapeHtml(a.lt) : ""}<br/>
               <b>Sector:</b> ${escapeHtml(a.sector)}<br/>
@@ -309,7 +311,7 @@ const autoLoad = async () => {
       errors.push(`${n}: ${err?.message ?? err}`);
     }
   }
-  throw new Error(`No se encontró ningún dataset compatible. Intentado: ${errors.join(" | ")}`);
+  throw new Error(`No se encontrÃ³ ningÃºn dataset compatible. Intentado: ${errors.join(" | ")}`);
 };
 
 const normRows = (rows: RecordRow[]): Business[] => {
@@ -358,7 +360,7 @@ const normRows = (rows: RecordRow[]): Business[] => {
     ).trim();
 
     const num = String(
-      [n["n°"], n["n"], n["numero"]].find(Boolean) || ""
+      [n["nÂ°"], n["n"], n["numero"]].find(Boolean) || ""
     ).trim();
 
     const mz = String([n["mz."], n["mz"]].find(Boolean) || "").trim();
@@ -555,7 +557,7 @@ const initMap = async () => {
 
   const g = (window as any).google;
   if (!(g && g.maps)) {
-    alert("No cargó Google Maps. Revisa API key / referrers.");
+    alert("No cargÃ³ Google Maps. Revisa API key / referrers.");
     return;
   }
 
@@ -586,7 +588,7 @@ const initMap = async () => {
 
   document.getElementById("btnLoc")?.addEventListener("click", () => {
     if (!navigator.geolocation) {
-      toast("Geolocalización no disponible en este navegador.", false);
+      toast("GeolocalizaciÃ³n no disponible en este navegador.", false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -595,7 +597,7 @@ const initMap = async () => {
         state.map.setZoom(17);
       },
       () => {
-        toast("No se pudo obtener la ubicación.", false);
+        toast("No se pudo obtener la ubicaciÃ³n.", false);
       }
     );
   });
@@ -623,7 +625,7 @@ const initMap = async () => {
   window.addEventListener("resize", adjustFabOffset);
 
   try {
-    toast("Cargando datos…");
+    toast("Cargando datosâ€¦");
     const { rows, filename } = await autoLoad();
     state.allData = normRows(rows);
     populateFilters();
@@ -651,7 +653,7 @@ function setTheme(th: string) {
   document.documentElement.setAttribute("data-theme", th);
   localStorage.setItem("prefers-theme", th);
   const icon = document.getElementById("themeIcon");
-  if (icon) icon.textContent = th === "dark" ? "☀️" : "🌙";
+  if (icon) icon.textContent = th === "dark" ? "â˜€ï¸" : "ðŸŒ™";
   if (state.map) {
     const mid = mapIdForTheme(th);
     if (mid) state.map.setOptions({ mapId: mid });
@@ -661,3 +663,6 @@ function setTheme(th: string) {
 
 // Expose the init callback for Google Maps
 (window as any).initMap = initMap;
+
+
+

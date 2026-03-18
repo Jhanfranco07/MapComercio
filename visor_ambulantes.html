@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -11,31 +11,33 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
-  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <header class="hero fade-in">
+<body>
+  <header class="hero fade-in viewer-hero">
     <div class="theme">
       <button id="themeToggle" class="btn icon-only" type="button" aria-label="Cambiar tema">
         <span id="themeIcon" aria-hidden="true">🌙</span>
       </button>
     </div>
 
-    <h1><span class="dot" aria-hidden="true"></span> Visor de Ambulantes Formales</h1>
-    <p>Distrito de <strong>Pachacamac</strong> - vista solo lectura con Leaflet.</p>
-    <span class="chip">Solo lectura • Sin edicion • Sin descargas</span>
+    <div class="hero-copy">
+      <p class="eyebrow">Fiscalizacion municipal</p>
+      <h1><span class="dot" aria-hidden="true"></span> Visor de Ambulantes Formales</h1>
+      <p>Distrito de <strong>Pachacamac</strong> · consulta rapida para patrullaje y verificacion en campo.</p>
+      <span class="chip hero-chip">Solo lectura · Sin edicion · Sin descargas</span>
+    </div>
   </header>
 
-  <main>
-    <section class="controls fade-in" style="animation-delay: .05s">
-      <div class="group">
+  <main class="viewer-main">
+    <section class="controls viewer-controls fade-in" style="animation-delay: .05s">
+      <div class="group compact-group">
         <label for="giroFilter">Rubro</label>
         <select id="giroFilter">
           <option value="todos">Todos</option>
         </select>
       </div>
 
-      <div class="group">
+      <div class="group compact-group">
         <label for="turnoFilter">Turno</label>
         <select id="turnoFilter">
           <option value="todos">Todos</option>
@@ -50,20 +52,20 @@
       </div>
     </section>
 
-    <section class="stats" aria-label="Resumen">
+    <section class="stats viewer-stats" aria-label="Resumen">
       <span class="chip">Total: <strong id="totalCount">0</strong></span>
       <span class="chip">Mostrando: <strong id="visibleCount">0</strong></span>
       <span class="chip">Zonas activas: <strong id="activeZones">0</strong></span>
     </section>
 
-    <section id="map" class="fade-in" style="animation-delay: .08s" aria-label="Mapa interactivo"></section>
+    <section id="map" class="fade-in viewer-map" style="animation-delay: .08s" aria-label="Mapa interactivo"></section>
 
-    <div class="map-fabs" aria-label="Acciones rapidas">
+    <div class="map-fabs viewer-fabs" aria-label="Acciones rapidas">
       <button class="fab" id="btnReset" type="button">Reset filtros</button>
       <button class="fab" id="btnLoc" type="button">Mi ubicacion</button>
     </div>
 
-    <section class="legend-dock">
+    <section class="legend-dock viewer-legend">
       <div class="legend-block wide-block">
         <h2>Leyenda por Rubro</h2>
         <div id="legendGiros" class="legend-items"></div>

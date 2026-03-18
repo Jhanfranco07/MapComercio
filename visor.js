@@ -1,4 +1,4 @@
-const VISOR_DATA_CANDIDATES = [
+﻿const VISOR_DATA_CANDIDATES = [
   "ambulantes_actualizado.xlsx",
   "ambulantes_actualizado.csv",
   "ambulantes.xlsx",
@@ -31,9 +31,12 @@ const visorState = {
   map: null,
   tileLayer: null,
   markersLayer: null,
+  canvasRenderer: null,
   allData: [],
   giroColorMap: {},
-  toastTimer: null
+  toastTimer: null,
+  refreshTimer: null,
+  hasFittedBounds: false
 };
 
 const visorUi = {};
@@ -75,6 +78,10 @@ const visorEscapeHtml = (value) => String(value ?? "")
 
 const visorTheme = () => document.documentElement.getAttribute("data-theme") || "light";
 const visorColorKey = (value) => visorNormalizeText(value);
+
+function visorIsCompactDevice() {
+  return window.innerWidth <= 768 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+}
 
 function visorToast(message, ok = true) {
   visorUi.toast.textContent = message;
@@ -166,47 +173,48 @@ function visorPopupHtml(record) {
     </div>`;
 }
 
-function visorCreateMarkerIcon(record) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="12" fill="${visorColorForGiro(record.giro)}" />
-      <circle cx="16" cy="16" r="14" fill="none" stroke="${visorStrokeForTurno(record.turno)}" stroke-width="3.5" />
-    </svg>`;
-
-  return L.divIcon({
-    className: "leaflet-svg-marker",
-    html: svg,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
-  });
-}
-
 function visorClearMarkers() {
   visorState.markersLayer.clearLayers();
 }
 
-function visorRenderMarkers(data) {
+function visorRenderMarkers(data, fitView = false) {
   visorClearMarkers();
   const validRecords = data.filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
 
   if (!validRecords.length) {
-    visorState.map.setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13);
+    if (fitView || !visorState.hasFittedBounds) {
+      visorState.map.setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13, { animate: false });
+    }
     return;
   }
 
+  const compactDevice = visorIsCompactDevice();
   const bounds = [];
+
   validRecords.forEach((record) => {
-    const marker = L.marker([record.lat, record.lng], {
-      icon: visorCreateMarkerIcon(record),
-      title: record.nombre
-    }).bindPopup(visorPopupHtml(record));
+    const marker = L.circleMarker([record.lat, record.lng], {
+      renderer: visorState.canvasRenderer,
+      radius: compactDevice ? 7 : 8,
+      weight: compactDevice ? 3 : 4,
+      color: visorStrokeForTurno(record.turno),
+      fillColor: visorColorForGiro(record.giro),
+      fillOpacity: 0.92,
+      opacity: 0.95,
+      bubblingMouseEvents: false
+    }).bindPopup(visorPopupHtml(record), { maxWidth: 320 });
 
     marker.addTo(visorState.markersLayer);
     bounds.push([record.lat, record.lng]);
   });
 
-  visorState.map.fitBounds(bounds, { padding: [40, 40] });
+  if (fitView) {
+    visorState.map.fitBounds(bounds, {
+      padding: compactDevice ? [24, 24] : [36, 36],
+      maxZoom: compactDevice ? 16 : 17,
+      animate: false
+    });
+    visorState.hasFittedBounds = true;
+  }
 }
 
 function visorGetSearchableValues(record) {
@@ -228,13 +236,9 @@ function visorApplyFilters() {
   const query = visorNormalizeText(visorUi.searchInput.value);
 
   return visorState.allData.filter((record) => {
-    const hasCoords = Number.isFinite(record.lat) && Number.isFinite(record.lng);
-    if (!hasCoords) return false;
-
     const giroMatches = selectedGiro === "todos" || visorColorKey(record.giro) === visorColorKey(selectedGiro);
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
     const queryMatches = !query || visorGetSearchableValues(record).some((value) => visorNormalizeText(value).includes(query));
-
     return giroMatches && turnoMatches && queryMatches;
   });
 }
@@ -268,16 +272,21 @@ function visorPopulateFilterAndLegend() {
     item.innerHTML = `<span class="legend-dot" style="background:${visorColorForGiro(giro)}"></span>${visorEscapeHtml(giro)}`;
     item.addEventListener("click", () => {
       visorUi.giroFilter.value = giro;
-      visorRefresh();
+      visorRefresh(false);
     });
     visorUi.legendGiros.appendChild(item);
   });
 }
 
-function visorRefresh() {
+function visorRefresh(fitView = false) {
   const filtered = visorApplyFilters();
-  visorRenderMarkers(filtered);
+  visorRenderMarkers(filtered, fitView);
   visorUpdateStats(filtered);
+}
+
+function visorScheduleRefresh(fitView = false) {
+  window.clearTimeout(visorState.refreshTimer);
+  visorState.refreshTimer = window.setTimeout(() => visorRefresh(fitView), 80);
 }
 
 async function visorLoadFromUrl(fileName) {
@@ -348,7 +357,7 @@ function visorNormalizeRows(rows) {
       lat: Number.isFinite(lat) ? lat : null,
       lng: Number.isFinite(lng) ? lng : null
     };
-  });
+  }).filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
 }
 
 function visorApplyThemeUi(themeName) {
@@ -363,7 +372,9 @@ function visorSetLeafletTheme(themeName) {
 
   visorState.tileLayer = L.tileLayer(config.url, {
     ...config.options,
-    maxZoom: 20
+    maxZoom: 20,
+    updateWhenIdle: true,
+    keepBuffer: visorIsCompactDevice() ? 1 : 2
   }).addTo(visorState.map);
 }
 
@@ -378,15 +389,15 @@ function visorSetTheme(themeName) {
 }
 
 function visorAttachUiEvents() {
-  visorUi.giroFilter.addEventListener("change", visorRefresh);
-  visorUi.turnoFilter.addEventListener("change", visorRefresh);
-  visorUi.searchInput.addEventListener("input", visorRefresh);
+  visorUi.giroFilter.addEventListener("change", () => visorRefresh(false));
+  visorUi.turnoFilter.addEventListener("change", () => visorRefresh(false));
+  visorUi.searchInput.addEventListener("input", () => visorScheduleRefresh(false));
 
   visorUi.btnReset.addEventListener("click", () => {
     visorUi.giroFilter.value = "todos";
     visorUi.turnoFilter.value = "todos";
     visorUi.searchInput.value = "";
-    visorRefresh();
+    visorRefresh(true);
   });
 
   visorUi.btnLoc.addEventListener("click", () => {
@@ -397,7 +408,7 @@ function visorAttachUiEvents() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        visorState.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.8 });
+        visorState.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.7, animate: true });
       },
       () => visorToast("No se pudo obtener tu ubicacion.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -408,14 +419,21 @@ function visorAttachUiEvents() {
     const next = visorTheme() === "dark" ? "light" : "dark";
     visorSetTheme(next);
   });
+
+  window.addEventListener("resize", () => visorScheduleRefresh(false));
 }
 
 function visorCreateMap() {
   visorState.map = L.map("map", {
     zoomControl: true,
-    preferCanvas: true
-  }).setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13);
+    preferCanvas: true,
+    zoomAnimation: false,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+    inertia: false
+  }).setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13, { animate: false });
 
+  visorState.canvasRenderer = L.canvas({ padding: 0.25 });
   visorState.markersLayer = L.layerGroup().addTo(visorState.map);
   visorSetLeafletTheme(visorTheme());
 }
@@ -423,9 +441,9 @@ function visorCreateMap() {
 async function visorLoadData() {
   visorToast("Cargando datos...");
   const { rows, filename } = await visorAutoLoad();
-  visorState.allData = visorNormalizeRows(rows).filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
+  visorState.allData = visorNormalizeRows(rows);
   visorPopulateFilterAndLegend();
-  visorRefresh();
+  visorRefresh(true);
   visorToast(`Cargado: ${filename} (${visorState.allData.length} puntos)`);
 }
 
