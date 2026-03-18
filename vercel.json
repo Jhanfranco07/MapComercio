@@ -1,6 +1,6 @@
 ﻿{
   "version": 2,
-  "buildCommand": "python build.py",
+  "buildCommand": "python3 build.py",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "negocios.html", "use": "@vercel/static" },
