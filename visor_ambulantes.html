@@ -26,7 +26,7 @@
   </header>
 
   <main class="viewer-main">
-    <section class="controls viewer-controls fade-in" style="animation-delay: .05s">
+    <section id="viewerFilters" class="controls viewer-controls fade-in" style="animation-delay: .05s">
       <div class="group compact-group">
         <label for="giroFilter">Rubro</label>
         <select id="giroFilter">
@@ -58,6 +58,7 @@
     <section id="map" class="fade-in viewer-map" style="animation-delay: .08s" aria-label="Mapa interactivo"></section>
 
     <div class="map-fabs viewer-fabs" aria-label="Acciones rapidas">
+      <button class="fab mobile-filter-toggle" id="btnFilters" type="button" aria-expanded="false" aria-controls="viewerFilters">Filtros</button>
       <button class="fab" id="btnReset" type="button">Reset filtros</button>
       <button class="fab" id="btnLoc" type="button">Mi ubicacion</button>
     </div>

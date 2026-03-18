@@ -18,7 +18,7 @@ const VISOR_PALETTE = [
 
 const VISOR_TILE_LAYERS = {
   light: {
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
     options: { attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }
   },
   dark: {
@@ -54,6 +54,8 @@ function cacheVisorDom() {
   visorUi.themeToggle = document.getElementById("themeToggle");
   visorUi.themeIcon = document.getElementById("themeIcon");
   visorUi.toast = document.getElementById("toast");
+  visorUi.btnFilters = document.getElementById("btnFilters");
+  visorUi.mainFilters = document.getElementById("viewerFilters");
 }
 
 const visorNormalizeKey = (value) => String(value || "")
@@ -388,6 +390,23 @@ function visorSetTheme(themeName) {
   }
 }
 
+function visorSetMobileFiltersOpen(forceOpen) {
+  if (!visorUi.mainFilters || !visorUi.btnFilters) return;
+
+  if (window.innerWidth > 768) {
+    visorUi.mainFilters.classList.remove("mobile-collapsed");
+    visorUi.btnFilters.setAttribute("aria-expanded", "true");
+    return;
+  }
+
+  const shouldOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : visorUi.mainFilters.classList.contains("mobile-collapsed");
+
+  visorUi.mainFilters.classList.toggle("mobile-collapsed", !shouldOpen);
+  visorUi.btnFilters.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+}
+
 function visorAttachUiEvents() {
   visorUi.giroFilter.addEventListener("change", () => visorRefresh(false));
   visorUi.turnoFilter.addEventListener("change", () => visorRefresh(false));
@@ -420,7 +439,17 @@ function visorAttachUiEvents() {
     visorSetTheme(next);
   });
 
-  window.addEventListener("resize", () => visorScheduleRefresh(false));
+  visorUi.btnFilters?.addEventListener("click", () => {
+    const opening = visorUi.mainFilters.classList.contains("mobile-collapsed");
+    visorSetMobileFiltersOpen(opening);
+  });
+
+  window.addEventListener("resize", () => {
+    visorScheduleRefresh(false);
+    if (window.innerWidth > 768) {
+      visorSetMobileFiltersOpen(true);
+    }
+  });
 }
 
 function visorCreateMap() {
@@ -453,6 +482,7 @@ window.initMap = async function initMap() {
   visorSetTheme(savedTheme);
   visorCreateMap();
   visorAttachUiEvents();
+  visorSetMobileFiltersOpen(window.innerWidth > 768);
 
   try {
     await visorLoadData();
