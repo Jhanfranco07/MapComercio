@@ -1,6 +1,6 @@
-﻿const VISOR_DATA_CANDIDATES = [
-  "ambulantes_actualizado.xlsx",
+const VISOR_DATA_CANDIDATES = [
   "ambulantes_actualizado.csv",
+  "ambulantes_actualizado.xlsx",
   "ambulantes.xlsx",
   "ambulantes.csv"
 ];

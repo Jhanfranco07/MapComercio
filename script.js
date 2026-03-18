@@ -1,6 +1,6 @@
 const DATA_CANDIDATES = [
-  "ambulantes_actualizado.xlsx",
   "ambulantes_actualizado.csv",
+  "ambulantes_actualizado.xlsx",
   "ambulantes.xlsx",
   "ambulantes.csv"
 ];
