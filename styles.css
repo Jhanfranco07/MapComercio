@@ -97,6 +97,10 @@ main {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
+.main-hero {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-size: 0.78rem;
@@ -171,7 +175,23 @@ main {
   overflow: hidden;
 }
 
+.main-controls {
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
+}
+
 .viewer-controls::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(26, 115, 232, 0.08), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 60%);
+  pointer-events: none;
+}
+
+.main-controls::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -545,6 +565,14 @@ button:focus-visible {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
 }
 
+.main-map {
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.mobile-filter-toggle {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .hero {
     padding: 18px 72px 16px 16px;
@@ -582,6 +610,25 @@ button:focus-visible {
 
   .viewer-controls {
     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  }
+
+  .main-controls {
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    transition: max-height 0.22s ease, opacity 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+  }
+
+  .main-controls.mobile-collapsed {
+    margin: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    border-width: 0;
+    box-shadow: none;
+    pointer-events: none;
   }
 
   .group,
@@ -638,6 +685,10 @@ button:focus-visible {
 
   .viewer-fabs .fab {
     min-width: 156px;
+  }
+
+  .mobile-filter-toggle {
+    display: inline-flex;
   }
 
   .export .btn {
@@ -711,5 +762,36 @@ button:focus-visible {
 
   .viewer-map {
     min-height: 390px;
+  }
+
+  .main-hero {
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  .main-hero h1 {
+    max-width: 260px;
+  }
+
+  .main-editor {
+    margin-top: 10px;
+  }
+
+  .main-map {
+    height: 66vh;
+    min-height: 470px;
+  }
+
+  .main-app .stats {
+    position: relative;
+    z-index: 2;
+  }
+
+  .main-app .map-fabs {
+    bottom: calc(var(--export-h) + 18px);
+  }
+
+  .main-app .legend-dock {
+    margin-top: 14px;
   }
 }

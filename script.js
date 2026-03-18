@@ -35,12 +35,15 @@ const state = {
   map: null,
   tileLayer: null,
   markersLayer: null,
+  canvasRenderer: null,
   allData: [],
   selectedId: "",
   assignMode: false,
   mapClickListener: null,
   giroColorMap: {},
-  toastTimer: null
+  toastTimer: null,
+  refreshTimer: null,
+  hasFittedBounds: false
 };
 
 const ui = {};
@@ -70,6 +73,8 @@ function cacheDom() {
   ui.themeToggle = document.getElementById("themeToggle");
   ui.themeIcon = document.getElementById("themeIcon");
   ui.toast = document.getElementById("toast");
+  ui.btnFilters = document.getElementById("btnFilters");
+  ui.mainFilters = document.getElementById("mainFilters");
 }
 
 const normalizeKey = (value) => String(value || "")
@@ -94,6 +99,10 @@ const escapeHtml = (value) => String(value ?? "")
 
 const currentTheme = () => document.documentElement.getAttribute("data-theme") || "light";
 const colorKey = (value) => normalizeText(value);
+
+function isCompactDevice() {
+  return window.innerWidth <= 768 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+}
 
 function toast(message, ok = true) {
   ui.toast.textContent = message;
@@ -211,54 +220,47 @@ function popupHtml(record) {
     </div>`;
 }
 
-function createMarkerIcon(record) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="12" fill="${colorForGiro(record.giro)}" />
-      <circle cx="16" cy="16" r="14" fill="none" stroke="${strokeForTurno(record.turno)}" stroke-width="3.5" />
-    </svg>`;
-
-  return L.divIcon({
-    className: "leaflet-svg-marker",
-    html: svg,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
-  });
-}
-
 function clearMarkers() {
   state.markersLayer.clearLayers();
 }
 
-function renderMarkers(data) {
+function renderMarkers(data, fitView = false) {
   clearMarkers();
 
   const validRecords = data.filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
   if (!validRecords.length) {
-    state.map.setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13);
+    if (fitView || !state.hasFittedBounds) {
+      state.map.setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13, { animate: false });
+    }
     return;
   }
 
+  const compactDevice = isCompactDevice();
   const bounds = [];
   validRecords.forEach((record) => {
-    const marker = L.marker([record.lat, record.lng], {
-      icon: createMarkerIcon(record),
-      title: record.nombre
-    }).bindPopup(popupHtml(record));
-
-    marker.on("popupopen", () => {
-      const markerNode = marker.getElement();
-      if (!markerNode) return;
-      markerNode.classList.add("pulse");
-      window.setTimeout(() => markerNode.classList.remove("pulse"), 480);
-    });
+    const marker = L.circleMarker([record.lat, record.lng], {
+      renderer: state.canvasRenderer,
+      radius: compactDevice ? 7 : 8,
+      weight: compactDevice ? 3 : 4,
+      color: strokeForTurno(record.turno),
+      fillColor: colorForGiro(record.giro),
+      fillOpacity: 0.92,
+      opacity: 0.95,
+      bubblingMouseEvents: false
+    }).bindPopup(popupHtml(record), { maxWidth: 320 });
 
     marker.addTo(state.markersLayer);
     bounds.push([record.lat, record.lng]);
   });
 
-  state.map.fitBounds(bounds, { padding: [40, 40] });
+  if (fitView) {
+    state.map.fitBounds(bounds, {
+      padding: compactDevice ? [24, 24] : [36, 36],
+      maxZoom: compactDevice ? 16 : 17,
+      animate: false
+    });
+    state.hasFittedBounds = true;
+  }
 }
 
 function getSearchableValues(record) {
@@ -331,7 +333,7 @@ function populateGiroFilterAndLegend() {
 
 function refresh() {
   const filtered = applyFilters();
-  renderMarkers(filtered);
+  renderMarkers(filtered, false);
   updateStats(filtered);
 
   const hasRecords = state.allData.length > 0;
@@ -339,6 +341,29 @@ function refresh() {
   ui.btnKmz.disabled = !hasRecords;
   ui.btnXlsx.disabled = !hasRecords;
   ui.btnCsv.disabled = !hasRecords;
+}
+
+function refreshAndFit() {
+  const filtered = applyFilters();
+  renderMarkers(filtered, true);
+  updateStats(filtered);
+
+  const hasRecords = state.allData.length > 0;
+  ui.btnKml.disabled = !hasRecords;
+  ui.btnKmz.disabled = !hasRecords;
+  ui.btnXlsx.disabled = !hasRecords;
+  ui.btnCsv.disabled = !hasRecords;
+}
+
+function scheduleRefresh(fitView = false) {
+  window.clearTimeout(state.refreshTimer);
+  state.refreshTimer = window.setTimeout(() => {
+    if (fitView) {
+      refreshAndFit();
+      return;
+    }
+    refresh();
+  }, 80);
 }
 
 function getSelectedRecord() {
@@ -659,8 +684,27 @@ function setLeafletTheme(theme) {
 
   state.tileLayer = L.tileLayer(config.url, {
     ...config.options,
-    maxZoom: 20
+    maxZoom: 20,
+    updateWhenIdle: true,
+    keepBuffer: isCompactDevice() ? 1 : 2
   }).addTo(state.map);
+}
+
+function setMobileFiltersOpen(forceOpen) {
+  if (!ui.mainFilters || !ui.btnFilters) return;
+
+  if (window.innerWidth > 768) {
+    ui.mainFilters.classList.remove("mobile-collapsed");
+    ui.btnFilters.setAttribute("aria-expanded", "true");
+    return;
+  }
+
+  const shouldOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : ui.mainFilters.classList.contains("mobile-collapsed");
+
+  ui.mainFilters.classList.toggle("mobile-collapsed", !shouldOpen);
+  ui.btnFilters.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
 }
 
 function setTheme(theme) {
@@ -676,13 +720,13 @@ function setTheme(theme) {
 function attachUiEvents() {
   ui.giroFilter.addEventListener("change", refresh);
   ui.turnoFilter.addEventListener("change", refresh);
-  ui.searchInput.addEventListener("input", refresh);
+  ui.searchInput.addEventListener("input", () => scheduleRefresh(false));
 
   ui.btnReset.addEventListener("click", () => {
     ui.giroFilter.value = "todos";
     ui.turnoFilter.value = "todos";
     ui.searchInput.value = "";
-    refresh();
+    refreshAndFit();
   });
 
   ui.btnLoc.addEventListener("click", () => {
@@ -715,6 +759,11 @@ function attachUiEvents() {
     setTheme(next);
   });
 
+  ui.btnFilters?.addEventListener("click", () => {
+    const opening = ui.mainFilters.classList.contains("mobile-collapsed");
+    setMobileFiltersOpen(opening);
+  });
+
   ui.btnKml.addEventListener("click", () => {
     const records = getExportDataset().filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
     if (!records.length) {
@@ -743,7 +792,12 @@ function attachUiEvents() {
 
   const resizeObserver = new ResizeObserver(adjustFabOffset);
   resizeObserver.observe(ui.exportBar);
-  window.addEventListener("resize", adjustFabOffset);
+  window.addEventListener("resize", () => {
+    adjustFabOffset();
+    if (window.innerWidth > 768) {
+      setMobileFiltersOpen(true);
+    }
+  });
 }
 
 async function loadData() {
@@ -753,16 +807,21 @@ async function loadData() {
   state.allData = normalizeRows(rows);
   populateGiroFilterAndLegend();
   rebuildPersonSelect();
-  refresh();
+  refreshAndFit();
   toast(`Cargado: ${filename} (${state.allData.length} registros)`);
 }
 
 function createMap() {
   state.map = L.map("map", {
     zoomControl: true,
-    preferCanvas: true
-  }).setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13);
+    preferCanvas: true,
+    zoomAnimation: false,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+    inertia: false
+  }).setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13, { animate: false });
 
+  state.canvasRenderer = L.canvas({ padding: 0.25 });
   state.markersLayer = L.layerGroup().addTo(state.map);
   setLeafletTheme(currentTheme());
 }
@@ -775,6 +834,7 @@ window.initMap = async function initMap() {
   setTheme(savedTheme);
   createMap();
   attachUiEvents();
+  setMobileFiltersOpen(window.innerWidth > 768);
 
   try {
     await loadData();
