@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Negocios â€” Mapa por Sector (PachacÃ¡mac)</title>
+  <title>Negocios Ã¢â‚¬â€ Mapa por Sector (PachacÃƒÂ¡mac)</title>
   <style>
     :root{
       --brand:#1a73e8; --ink:#0f172a; --muted:#667085; --bg:#f6f7f9; --card:#ffffff; --ring:#e5e7eb; --chip:#0f172a0f;
@@ -94,63 +94,63 @@
 </head>
 <body>
   <div class="hero">
-    <h1>ðŸ“ Negocios â€” Mapa por Sector</h1>
-    <p>Distrito de <b>PachacÃ¡mac</b> â€” columnas oficiales (sin turno)</p>
+    <h1>Ã°Å¸â€œÂ Negocios Ã¢â‚¬â€ Mapa por Sector</h1>
+    <p>Distrito de <b>PachacÃƒÂ¡mac</b> Ã¢â‚¬â€ columnas oficiales (sin turno)</p>
     <div class="top-actions">
-      <a class="btn" href="index.html">â†©ï¸ Ir al mapa principal</a>
-      <button id="themeToggle" class="btn"><span id="themeIcon">ðŸŒ™</span> <span id="themeText">Modo oscuro</span></button>
+      <a class="btn" href="index.html">Ã¢â€ Â©Ã¯Â¸Â Ir al mapa principal</a>
+      <button id="themeToggle" class="btn"><span id="themeIcon">Ã°Å¸Å’â„¢</span> <span id="themeText">Modo oscuro</span></button>
     </div>
   </div>
 
   <div class="controls">
     <div class="group">
-      <label>ðŸ˜ï¸ Sector</label>
+      <label>Ã°Å¸ÂËœÃ¯Â¸Â Sector</label>
       <select id="sectorFilter"><option value="todos">Todos</option></select>
     </div>
     <div class="group">
-      <label>ðŸ—“ï¸ AÃ±o</label>
+      <label>Ã°Å¸â€”â€œÃ¯Â¸Â AÃƒÂ±o</label>
       <select id="yearFilter"><option value="todos">Todos</option></select>
     </div>
     <div class="group" style="flex:1;min-width:240px">
-      <label>ðŸ”Ž Buscar</label>
-      <input id="searchInput" class="search" placeholder="Nombre comercial, titular, giro, direcciÃ³nâ€¦"/>
+      <label>Ã°Å¸â€Å½ Buscar</label>
+      <input id="searchInput" class="search" placeholder="Nombre comercial, titular, giro, direcciÃƒÂ³nÃ¢â‚¬Â¦"/>
     </div>
     <div style="margin-left:auto; display:flex; gap:8px">
-      <button id="toggleEdit" class="btn">âœï¸ Modo ediciÃ³n</button>
+      <button id="toggleEdit" class="btn">Ã¢Å“ÂÃ¯Â¸Â Modo ediciÃƒÂ³n</button>
     </div>
   </div>
 
   <div class="stats">
-    <span class="chip">ðŸ—‚ï¸ Sectores: <b id="sectorCount">0</b></span>
-    <span class="chip">ðŸ“… AÃ±os activos: <b id="yearCount">0</b></span>
-    <span class="chip">ðŸ“ Mostrando: <b id="visibleCount">0</b></span>
-    <span class="chip">ðŸ‘¥ Total: <b id="totalCount">0</b></span>
+    <span class="chip">Ã°Å¸â€”â€šÃ¯Â¸Â Sectores: <b id="sectorCount">0</b></span>
+    <span class="chip">Ã°Å¸â€œâ€¦ AÃƒÂ±os activos: <b id="yearCount">0</b></span>
+    <span class="chip">Ã°Å¸â€œÂ Mostrando: <b id="visibleCount">0</b></span>
+    <span class="chip">Ã°Å¸â€˜Â¥ Total: <b id="totalCount">0</b></span>
   </div>
 
   <div id="map"></div>
 
-  <!-- Panel de ediciÃ³n -->
+  <!-- Panel de ediciÃƒÂ³n -->
   <div class="fab-panel" id="editPanel" style="display:none">
-    <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o Nombreâ€¦ (Enter para licencia exacta)"/>
-    <select id="personSelect" class="fab" title="Selecciona negocioâ€¦">
-      <option value="">Selecciona negocioâ€¦</option>
+    <input id="editorFilter" class="fab" placeholder="Filtrar por Licencia o NombreÃ¢â‚¬Â¦ (Enter para licencia exacta)"/>
+    <select id="personSelect" class="fab" title="Selecciona negocioÃ¢â‚¬Â¦">
+      <option value="">Selecciona negocioÃ¢â‚¬Â¦</option>
     </select>
-    <button id="btnAssign" class="fab">ðŸ“Œ Asignar en el mapa</button>
-    <button id="btnCenter" class="fab">ðŸŽ¯ Centrar</button>
-    <button id="btnClear" class="fab">ðŸ—‘ï¸ Quitar ubicaciÃ³n</button>
-    <div class="fab" id="coordPreview">Lat: â€” , Lng: â€”</div>
-    <button id="btnExportXlsx" class="fab">ðŸ’¾ Descargar Excel actualizado</button>
-    <button id="btnExportCsv" class="fab">â¬‡ï¸ Descargar CSV actualizado</button>
+    <button id="btnAssign" class="fab">Ã°Å¸â€œÅ’ Asignar en el mapa</button>
+    <button id="btnCenter" class="fab">Ã°Å¸Å½Â¯ Centrar</button>
+    <button id="btnClear" class="fab">Ã°Å¸â€”â€˜Ã¯Â¸Â Quitar ubicaciÃƒÂ³n</button>
+    <div class="fab" id="coordPreview">Lat: Ã¢â‚¬â€ , Lng: Ã¢â‚¬â€</div>
+    <button id="btnExportXlsx" class="fab">Ã°Å¸â€™Â¾ Descargar Excel actualizado</button>
+    <button id="btnExportCsv" class="fab">Ã¢Â¬â€¡Ã¯Â¸Â Descargar CSV actualizado</button>
   </div>
 
   <div class="export" id="exportBar">
     <label><input type="checkbox" id="onlyVisible"> Exportar solo visibles</label>
-    <button id="btnKml" class="btn">â¬‡ï¸ Descargar KML</button>
-    <button id="btnKmz" class="btn primary">â¬‡ï¸ Descargar KMZ</button>
+    <button id="btnKml" class="btn">Ã¢Â¬â€¡Ã¯Â¸Â Descargar KML</button>
+    <button id="btnKmz" class="btn primary">Ã¢Â¬â€¡Ã¯Â¸Â Descargar KMZ</button>
     <div style="flex:1"></div>
   </div>
 
-  <div id="toast" class="toast">Cargandoâ€¦</div>
+  <div id="toast" class="toast">CargandoÃ¢â‚¬Â¦</div>
 
   <!-- Libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -191,7 +191,7 @@
       return '';
     };
 
-    /* ===== AÃ‘O: parse + colores ===== */
+    /* ===== AÃƒâ€˜O: parse + colores ===== */
     const parseYear = (val) => {
       const m = String(val||'').match(/(19|20)\d{2}/);
       const y = m ? parseInt(m[0],10) : null;
@@ -204,7 +204,7 @@
       '#65a30d','#9333ea','#0284c7','#ca8a04'
     ];
     let YEAR_COLOR_MAP = {};
-    const colorForYear = (y) => YEAR_COLOR_MAP[String(y)] || '#94a3b8'; // gris para sin aÃ±o
+    const colorForYear = (y) => YEAR_COLOR_MAP[String(y)] || '#94a3b8'; // gris para sin aÃƒÂ±o
     function buildYearColorMap(years){
       YEAR_COLOR_MAP = {};
       years.forEach((y,i)=>{ YEAR_COLOR_MAP[String(y)] = PALETTE_HEX[i % PALETTE_HEX.length]; });
@@ -224,14 +224,14 @@
       return `
         <div style="min-width:260px;max-width:380px;font-family:inherit">
           <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:6px 6px 0 0;margin:-8px -8px 8px -8px;font-weight:700">
-            ${esc(displayName(a) || a.licencia || 'â€”')}
+            ${esc(displayName(a) || a.licencia || 'Ã¢â‚¬â€')}
           </div>
-          <div><b>AÃ±o:</b> ${a.anio ?? '-'}</div>
+          <div><b>AÃƒÂ±o:</b> ${a.anio ?? '-'}</div>
           <div><b>Licencia:</b> ${esc(a.licencia||'-')}</div>
           <div><b>Periodo:</b> ${esc(a.periodo||'-')}</div>
-          <div><b>Titular / RazÃ³n social:</b> ${esc(a.titular||'-')}</div>
+          <div><b>Titular / RazÃƒÂ³n social:</b> ${esc(a.titular||'-')}</div>
           <div><b>RUC:</b> ${esc(a.ruc||'-')}</div>
-          <div><b>DirecciÃ³n:</b> ${esc(a.dir||'-')} ${a.num?('NÂ° '+esc(a.num)) : ''} ${a.mz?(' MZ. '+esc(a.mz)) : ''} ${a.lt?(' LT. '+esc(a.lt)) : ''}</div>
+          <div><b>DirecciÃƒÂ³n:</b> ${esc(a.dir||'-')} ${a.num?('NÃ‚Â° '+esc(a.num)) : ''} ${a.mz?(' MZ. '+esc(a.mz)) : ''} ${a.lt?(' LT. '+esc(a.lt)) : ''}</div>
           <div><b>Sector:</b> ${esc(a.sector||'-')}</div>
           <div><b>Giro:</b> ${esc(a.giro||'-')}</div>
         </div>`;
@@ -302,7 +302,7 @@
       const f=applyFilters();
       renderMarkers(f);
       updateStats(f);
-      if (editMode) rebuildPersonSelect(lastEditorFilter); // respeta sector y aÃ±o
+      if (editMode) rebuildPersonSelect(lastEditorFilter); // respeta sector y aÃƒÂ±o
     }
 
     /* ===== Carga datos ===== */
@@ -319,10 +319,10 @@
     }
     async function autoLoad(){
       for(const n of DATA_CANDIDATES){ try{ return {rows:await loadFromUrl(n), filename:n}; }catch(_){} }
-      throw new Error(`No encontrÃ© ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
+      throw new Error(`No encontrÃƒÂ© ${DATA_CANDIDATES.join(' / ')} junto al HTML.`);
     }
 
-    // IDs Ãºnicos aunque la LICENCIA se repita
+    // IDs ÃƒÂºnicos aunque la LICENCIA se repita
     function normRows(rows){
       const out=[]; let rowIdx=0;
       const licCounter = Object.create(null);
@@ -341,7 +341,7 @@
         ], ['apellidos','nombres','razon','social'])).trim();
         const ruc      = String(pick(n, ['r_u_c_','ruc','r.u.c.','r_u_c'], ['r','u','c'])).trim();
         const dir      = String(pick(n, ['direccion_del_establecimiento_comercial','direccion'], ['direccion','establecimiento','comercial'])).trim();
-        const num      = String(pick(n, ['nÂ°','n','numero'], ['n'])).trim();
+        const num      = String(pick(n, ['nÃ‚Â°','n','numero'], ['n'])).trim();
         const mz       = String(pick(n, ['mz.','mz'], ['mz'])).trim();
         const lt       = String(pick(n, ['lt.','lt'], ['lt'])).trim();
         const sector   = String(pick(n, ['sector'], ['sector'])).trim();
@@ -374,7 +374,7 @@
       return out;
     }
 
-    /* ===== Export KML/KMZ (agrupado por AÃ‘O) ===== */
+    /* ===== Export KML/KMZ (agrupado por AÃƒâ€˜O) ===== */
     const toHex=n=>n.toString(16).padStart(2,'0');
     function hexToKml(hex){ const h=hex.replace('#',''); const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16); return `ff${toHex(b)}${toHex(g)}${toHex(r)}`; }
     const styleYearId = y => `y_${y}`;
@@ -382,14 +382,14 @@
     function buildKmlGroupedByYear(data){
       const groups = new Map(); // year -> array
       data.forEach(a=>{
-        const y = a.anio ?? 'Sin aÃ±o';
+        const y = a.anio ?? 'Sin aÃƒÂ±o';
         if(!groups.has(y)) groups.set(y, []);
         groups.get(y).push(a);
       });
 
-      // styles por aÃ±o
+      // styles por aÃƒÂ±o
       const styles = Array.from(groups.keys()).map(y=>{
-        const col = colorForYear(y==='Sin aÃ±o' ? null : y);
+        const col = colorForYear(y==='Sin aÃƒÂ±o' ? null : y);
         return `
         <Style id="${styleYearId(y)}">
           <IconStyle><color>${hexToKml(col)}</color><scale>1.2</scale></IconStyle>
@@ -398,9 +398,9 @@
       }).join('\n');
 
       const folders = Array.from(groups.entries()).sort(([a],[b])=>{
-        // 'Sin aÃ±o' al final
-        if(a==='Sin aÃ±o') return 1;
-        if(b==='Sin aÃ±o') return -1;
+        // 'Sin aÃƒÂ±o' al final
+        if(a==='Sin aÃƒÂ±o') return 1;
+        if(b==='Sin aÃƒÂ±o') return -1;
         return Number(a)-Number(b);
       }).map(([y,arr])=>{
         const placemarks = arr.filter(a=>Number.isFinite(a.lat)&&Number.isFinite(a.lng)).map(a=>`
@@ -408,12 +408,12 @@
             <name>${esc(displayName(a) || a.licencia || '')}</name>
             <styleUrl>#${styleYearId(y)}</styleUrl>
             <description><![CDATA[
-              <b>AÃ±o:</b> ${a.anio ?? '-'}<br/>
+              <b>AÃƒÂ±o:</b> ${a.anio ?? '-'}<br/>
               <b>Licencia:</b> ${esc(a.licencia)}<br/>
               <b>Periodo:</b> ${esc(a.periodo)}<br/>
               <b>Titular:</b> ${esc(a.titular)}<br/>
               <b>RUC:</b> ${esc(a.ruc)}<br/>
-              <b>DirecciÃ³n:</b> ${esc(a.dir)} ${a.num?('NÂ° '+esc(a.num)) : ''} ${a.mz?(' MZ. '+esc(a.mz)) : ''} ${a.lt?(' LT. '+esc(a.lt)) : ''}<br/>
+              <b>DirecciÃƒÂ³n:</b> ${esc(a.dir)} ${a.num?('NÃ‚Â° '+esc(a.num)) : ''} ${a.mz?(' MZ. '+esc(a.mz)) : ''} ${a.lt?(' LT. '+esc(a.lt)) : ''}<br/>
               <b>Sector:</b> ${esc(a.sector)}<br/>
               <b>Giro:</b> ${esc(a.giro)}
             ]]></description>
@@ -425,7 +425,7 @@
       return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Negocios â€” PachacÃ¡mac (Agrupado por AÃ±o)</name>
+    <name>Negocios Ã¢â‚¬â€ PachacÃƒÂ¡mac (Agrupado por AÃƒÂ±o)</name>
     ${styles}
     ${folders}
   </Document>
@@ -434,21 +434,21 @@
     function downloadBlob(name, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(a.href), 1500); }
 
     /* ===== Tema ===== */
-    function applyThemeUI(th){ const i=document.getElementById('themeIcon'), t=document.getElementById('themeText'); if(th==='dark'){i.textContent='â˜€ï¸'; t.textContent='Modo claro';} else {i.textContent='ðŸŒ™'; t.textContent='Modo oscuro';} }
+    function applyThemeUI(th){ const i=document.getElementById('themeIcon'), t=document.getElementById('themeText'); if(th==='dark'){i.textContent='Ã¢Ëœâ‚¬Ã¯Â¸Â'; t.textContent='Modo claro';} else {i.textContent='Ã°Å¸Å’â„¢'; t.textContent='Modo oscuro';} }
     const mapIdForTheme = th => th==='dark' ? (MAP_ID_DARK||null) : (MAP_ID_LIGHT||null);
     function setTheme(th){ document.documentElement.setAttribute('data-theme', th); localStorage.setItem('prefers-theme-negocios', th); applyThemeUI(th); if(map){ const mid=mapIdForTheme(th); if(mid) map.setOptions({mapId:mid}); renderMarkers(applyFilters()); } }
 
     /* ===== Editor ===== */
     const getSelectedRecord = ()=> { const id=String(selectedId); if(!id) return null; return allData.find(a=>String(a.id)===id)||null; };
-    function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: â€” , Lng: â€”'; }
+    function setCoordPreview(lat,lng){ const el=document.getElementById('coordPreview'); el.textContent=(Number.isFinite(lat)&&Number.isFinite(lng))?`Lat: ${lat.toFixed(6)} , Lng: ${lng.toFixed(6)}`:'Lat: Ã¢â‚¬â€ , Lng: Ã¢â‚¬â€'; }
 
     function labelForOption(a, has){
       const name = displayName(a);
-      const fallback = name || a.giro || a.sector || a.dir || 'â€”';
+      const fallback = name || a.giro || a.sector || a.dir || 'Ã¢â‚¬â€';
       const lic = a.licencia || '(s/lic)';
-      const year = a.anio ? ` Â· ${a.anio}` : '';
-      const tag = has ? 'âœ…' : 'âŒ';
-      return `${tag} ${lic}${year} â€” ${fallback}`;
+      const year = a.anio ? ` Ã‚Â· ${a.anio}` : '';
+      const tag = has ? 'Ã¢Å“â€¦' : 'Ã¢ÂÅ’';
+      return `${tag} ${lic}${year} Ã¢â‚¬â€ ${fallback}`;
     }
 
     function rebuildPersonSelect(filterText=""){
@@ -479,23 +479,23 @@
       const sin=entries.filter(a=>!(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
       const con=entries.filter(a=>(Number.isFinite(a.lat)&&Number.isFinite(a.lng)));
 
-      sel.innerHTML='<option value="">Selecciona negocioâ€¦</option>';
-      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicaciÃ³n (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,false); g.appendChild(o); }); sel.appendChild(g); }
-      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicaciÃ³n (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,true); g.appendChild(o); }); sel.appendChild(g); }
+      sel.innerHTML='<option value="">Selecciona negocioÃ¢â‚¬Â¦</option>';
+      if(sin.length){ const g=document.createElement('optgroup'); g.label=`Sin ubicaciÃƒÂ³n (${sin.length})`; sin.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,false); g.appendChild(o); }); sel.appendChild(g); }
+      if(con.length){ const g=document.createElement('optgroup'); g.label=`Con ubicaciÃƒÂ³n (${con.length})`; con.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=labelForOption(a,true); g.appendChild(o); }); sel.appendChild(g); }
     }
 
     function enableAssignMode(){
       if(assignMode) return;
       if(!selectedId){ alert('Selecciona un negocio.'); return; }
-      assignMode=true; document.getElementById('btnAssign').textContent='âœ… Click en el mapaâ€¦'; document.body.style.cursor='crosshair';
+      assignMode=true; document.getElementById('btnAssign').textContent='Ã¢Å“â€¦ Click en el mapaÃ¢â‚¬Â¦'; document.body.style.cursor='crosshair';
       mapClickListener = map.addListener('click', (e)=>{
         const rec=getSelectedRecord(); if(!rec) return;
         const lat=e.latLng.lat(), lng=e.latLng.lng(); rec.lat=lat; rec.lng=lng; setCoordPreview(lat,lng);
-        assignMode=false; document.getElementById('btnAssign').textContent='ðŸ“Œ Asignar en el mapa'; document.body.style.cursor='default';
+        assignMode=false; document.getElementById('btnAssign').textContent='Ã°Å¸â€œÅ’ Asignar en el mapa'; document.body.style.cursor='default';
         if(mapClickListener){ google.maps.event.removeListener(mapClickListener); mapClickListener=null; }
         rebuildPersonSelect(lastEditorFilter); document.getElementById('personSelect').value=String(rec.id);
         refresh();
-        toast('UbicaciÃ³n asignada.');
+        toast('UbicaciÃƒÂ³n asignada.');
       });
     }
     function centerOnSelected(){ const r=getSelectedRecord(); if(!r){ alert('Selecciona un negocio.'); return; } if(Number.isFinite(r.lat)&&Number.isFinite(r.lng)){ map.setCenter({lat:r.lat,lng:r.lng}); map.setZoom(17); } else { map.setCenter(CENTER); map.setZoom(14); } }
@@ -504,20 +504,20 @@
     function toExportRows(){
       return allData.map(a=>({
         'LICENCIA': a.licencia||'','PERIODO': a.periodo||'','APELLIDOS Y NOMBRES / RAZON SOCIAL': a.titular||'',
-        'R.U.C.': a.ruc||'','DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'','NÂ°': a.num||'','MZ.': a.mz||'','LT.': a.lt||'',
+        'R.U.C.': a.ruc||'','DIRECCION DEL ESTABLECIMIENTO COMERCIAL': a.dir||'','NÃ‚Â°': a.num||'','MZ.': a.mz||'','LT.': a.lt||'',
         'SECTOR': a.sector||'','GIRO DEL ESTABLECIMIENTO': a.giro||'','NOMBRE COMERCIAL': a.nombre_comercial||'',
         'Lat': Number.isFinite(a.lat)?a.lat:'','Long': Number.isFinite(a.lng)?a.lng:''
       }));
     }
     function downloadXlsx(){
       const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','NÂ°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','NÃ‚Â°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
       const ws=XLSX.utils.json_to_sheet(rows,{header:headers});
       const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Negocios'); XLSX.writeFile(wb,'negocios_actualizado.xlsx');
     }
     function downloadCsv(){
       const rows=toExportRows();
-      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','NÂ°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
+      const headers=['LICENCIA','PERIODO','APELLIDOS Y NOMBRES / RAZON SOCIAL','R.U.C.','DIRECCION DEL ESTABLECIMIENTO COMERCIAL','NÃ‚Â°','MZ.','LT.','SECTOR','GIRO DEL ESTABLECIMIENTO','NOMBRE COMERCIAL','Lat','Long'];
       const lines=[headers.join(';')];
       for(const r of rows){
         const vals=headers.map(h=>{ const s=String(r[h]??'').replace(/"/g,'""'); return /[;\n"]/.test(s)?`"${s}"`:s; });
@@ -531,7 +531,7 @@
       // Tema inicial
       setTheme(localStorage.getItem('prefers-theme-negocios') || 'light');
 
-      if(!(window.google && google.maps)){ alert('No cargÃ³ Google Maps. Revisa API key / referrers.'); return; }
+      if(!(window.google && google.maps)){ alert('No cargÃƒÂ³ Google Maps. Revisa API key / referrers.'); return; }
       map=new google.maps.Map(document.getElementById('map'), { center:CENTER, zoom:13, mapTypeControl:false, streetViewControl:false, fullscreenControl:true, mapId:(theme()==='dark'?MAP_ID_DARK:MAP_ID_LIGHT)||undefined });
       infoWindow=new google.maps.InfoWindow();
 
@@ -594,7 +594,7 @@
 
       // Datos
       try{
-        toast('Cargando datosâ€¦');
+        toast('Cargando datosÃ¢â‚¬Â¦');
         const {rows, filename}=await autoLoad();
         allData = normRows(rows);
         populateFilters();
@@ -606,7 +606,7 @@
   </script>
 
   <!-- Google Maps) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAQeYy095tt1Qy9w9cpEVGwDZevaFL7v1M&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhvXKftVB_CO6_qXYMww2Qgm0XkEA65yw&callback=initMap&v=weekly&loading=async&libraries=marker" defer></script>
 </body>
 </html>
 
