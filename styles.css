@@ -429,13 +429,13 @@ button:focus-visible {
 }
 
 .leaflet-svg-marker svg {
-  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.08));
+  filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.55)) drop-shadow(0 6px 12px rgba(15, 23, 42, 0.22));
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .leaflet-marker-icon:hover svg {
-  transform: scale(1.06);
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.18));
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.6)) drop-shadow(0 10px 18px rgba(15, 23, 42, 0.28));
 }
 
 .leaflet-marker-icon.pulse svg {

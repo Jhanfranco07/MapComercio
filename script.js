@@ -18,7 +18,7 @@ const PALETTE_HEX = [
 
 const TILE_LAYERS = {
   light: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     options: {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }
@@ -213,17 +213,17 @@ function popupHtml(record) {
 
 function createMarkerIcon(record) {
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-      <circle cx="14" cy="14" r="11" fill="${colorForGiro(record.giro)}" />
-      <circle cx="14" cy="14" r="12.5" fill="none" stroke="${strokeForTurno(record.turno)}" stroke-width="3" />
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="12" fill="${colorForGiro(record.giro)}" />
+      <circle cx="16" cy="16" r="14" fill="none" stroke="${strokeForTurno(record.turno)}" stroke-width="3.5" />
     </svg>`;
 
   return L.divIcon({
     className: "leaflet-svg-marker",
     html: svg,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14]
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
   });
 }
 
