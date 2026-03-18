@@ -1,14 +1,12 @@
-﻿const DATA_CANDIDATES = [
+const DATA_CANDIDATES = [
   "ambulantes_actualizado.xlsx",
   "ambulantes_actualizado.csv",
   "ambulantes.xlsx",
   "ambulantes.csv"
 ];
 
-const MAP_ID_LIGHT = "REEMPLAZA_CON_TU_MAP_ID_CLARO";
-const MAP_ID_DARK = "REEMPLAZA_CON_TU_MAP_ID_OSCURO";
 const PACHACAMAC_CENTER = { lat: -12.155, lng: -76.87 };
-const TURNO_LABELS = { manana: "Mañana", tarde: "Tarde" };
+const TURNO_LABELS = { manana: "Manana", tarde: "Tarde" };
 const TURNO_STROKES = { manana: "#f59e0b", tarde: "#6366f1" };
 const OVERRIDE_COLORS = { asedipa: "#22c55e" };
 const PALETTE_HEX = [
@@ -18,10 +16,25 @@ const PALETTE_HEX = [
   "#4f46e5", "#65a30d", "#ea580c", "#0284c7"
 ];
 
+const TILE_LAYERS = {
+  light: {
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    options: {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }
+  },
+  dark: {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    options: {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }
+  }
+};
+
 const state = {
   map: null,
-  infoWindow: null,
-  markers: [],
+  tileLayer: null,
+  markersLayer: null,
   allData: [],
   selectedId: "",
   assignMode: false,
@@ -116,7 +129,9 @@ function normalizeTurno(value) {
 
 function inferTurno(horario) {
   const upper = String(horario || "").toUpperCase();
-  if (upper.includes("PM") || upper.includes("TARDE")) return "tarde";
+  if (upper.includes("PM") || upper.includes("TARDE") || upper.includes("15:") || upper.includes("16:")) {
+    return "tarde";
+  }
   return "manana";
 }
 
@@ -183,10 +198,8 @@ function turnoLabel(turno) {
 
 function popupHtml(record) {
   return `
-    <div style="min-width:260px;max-width:360px;font-family:inherit">
-      <div style="background:#1a73e8;color:#fff;padding:10px;border-radius:8px 8px 0 0;margin:-8px -8px 10px -8px;font-weight:700">
-        ${escapeHtml(record.nombre || "Sin nombre")}
-      </div>
+    <div class="leaflet-popup-card">
+      <div class="leaflet-popup-title">${escapeHtml(record.nombre || "Sin nombre")}</div>
       <div><b>Giro:</b> ${escapeHtml(record.giro || "-")}</div>
       <div><b>Productos:</b> ${escapeHtml(record.productos || "-")}</div>
       <div><b>Zona:</b> ${escapeHtml(record.zona || "-")}</div>
@@ -198,81 +211,54 @@ function popupHtml(record) {
     </div>`;
 }
 
-function svgIcon(fill, stroke) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="${fill}" /><circle cx="14" cy="14" r="12.5" fill="none" stroke="${stroke}" stroke-width="3" /></svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new google.maps.Size(28, 28),
-    anchor: new google.maps.Point(14, 14)
-  };
+function createMarkerIcon(record) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+      <circle cx="14" cy="14" r="11" fill="${colorForGiro(record.giro)}" />
+      <circle cx="14" cy="14" r="12.5" fill="none" stroke="${strokeForTurno(record.turno)}" stroke-width="3" />
+    </svg>`;
+
+  return L.divIcon({
+    className: "leaflet-svg-marker",
+    html: svg,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14]
+  });
 }
 
 function clearMarkers() {
-  state.markers.forEach((marker) => marker.setMap && marker.setMap(null));
-  state.markers = [];
+  state.markersLayer.clearLayers();
 }
 
 function renderMarkers(data) {
   clearMarkers();
 
-  if (!state.map) return;
+  const validRecords = data.filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
+  if (!validRecords.length) {
+    state.map.setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13);
+    return;
+  }
 
-  const bounds = new google.maps.LatLngBounds();
-  const hasAdvancedMarkers = Boolean(google.maps.marker && google.maps.marker.AdvancedMarkerElement);
+  const bounds = [];
+  validRecords.forEach((record) => {
+    const marker = L.marker([record.lat, record.lng], {
+      icon: createMarkerIcon(record),
+      title: record.nombre
+    }).bindPopup(popupHtml(record));
 
-  data.forEach((record) => {
-    const position = { lat: record.lat, lng: record.lng };
-
-    if (hasAdvancedMarkers) {
-      const node = document.createElement("div");
-      node.className = "marker-node";
-      node.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-          <circle cx="14" cy="14" r="11" fill="${colorForGiro(record.giro)}" />
-          <circle cx="14" cy="14" r="12.5" fill="none" stroke="${strokeForTurno(record.turno)}" stroke-width="3" />
-        </svg>`;
-
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map: state.map,
-        position,
-        title: record.nombre,
-        content: node
-      });
-
-      marker.addListener("gmp-click", () => {
-        state.infoWindow.setContent(popupHtml(record));
-        state.infoWindow.open({ anchor: marker, map: state.map });
-        node.classList.add("pulse");
-        window.setTimeout(() => node.classList.remove("pulse"), 480);
-      });
-
-      state.markers.push(marker);
-      bounds.extend(marker.position);
-      return;
-    }
-
-    const marker = new google.maps.Marker({
-      map: state.map,
-      position,
-      title: record.nombre,
-      icon: svgIcon(colorForGiro(record.giro), strokeForTurno(record.turno))
+    marker.on("popupopen", () => {
+      const markerNode = marker.getElement();
+      if (!markerNode) return;
+      markerNode.classList.add("pulse");
+      window.setTimeout(() => markerNode.classList.remove("pulse"), 480);
     });
 
-    marker.addListener("click", () => {
-      state.infoWindow.setContent(popupHtml(record));
-      state.infoWindow.open({ anchor: marker, map: state.map });
-    });
-
-    state.markers.push(marker);
-    bounds.extend(marker.getPosition());
+    marker.addTo(state.markersLayer);
+    bounds.push([record.lat, record.lng]);
   });
 
-  if (data.length) {
-    state.map.fitBounds(bounds, 60);
-  } else {
-    state.map.setCenter(PACHACAMAC_CENTER);
-    state.map.setZoom(13);
-  }
+  state.map.fitBounds(bounds, { padding: [40, 40] });
 }
 
 function getSearchableValues(record) {
@@ -406,7 +392,7 @@ function finishAssignMode() {
   document.body.style.cursor = "default";
 
   if (state.mapClickListener) {
-    google.maps.event.removeListener(state.mapClickListener);
+    state.map.off("click", state.mapClickListener);
     state.mapClickListener = null;
   }
 }
@@ -425,16 +411,18 @@ function enableAssignMode() {
   ui.btnAssign.textContent = "Haz click en el mapa...";
   document.body.style.cursor = "crosshair";
 
-  state.mapClickListener = state.map.addListener("click", (event) => {
-    record.lat = event.latLng.lat();
-    record.lng = event.latLng.lng();
+  state.mapClickListener = (event) => {
+    record.lat = event.latlng.lat;
+    record.lng = event.latlng.lng;
     setCoordPreview(record.lat, record.lng);
     rebuildPersonSelect();
     ui.personSelect.value = String(record.id);
     finishAssignMode();
     refresh();
     toast(`Ubicacion actualizada para ${record.nombre || "el registro"}`);
-  });
+  };
+
+  state.map.on("click", state.mapClickListener);
 }
 
 function centerOnSelected() {
@@ -445,11 +433,9 @@ function centerOnSelected() {
   }
 
   if (Number.isFinite(record.lat) && Number.isFinite(record.lng)) {
-    state.map.setCenter({ lat: record.lat, lng: record.lng });
-    state.map.setZoom(17);
+    state.map.flyTo([record.lat, record.lng], 17, { duration: 0.8 });
   } else {
-    state.map.setCenter(PACHACAMAC_CENTER);
-    state.map.setZoom(14);
+    state.map.flyTo([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 14, { duration: 0.8 });
     toast("La persona seleccionada aun no tiene ubicacion.", false);
   }
 }
@@ -597,7 +583,7 @@ function buildKml(data) {
   <Document>
     <name>Ambulantes - Pachacamac</name>
     ${styles}
-    ${buildFolder("Mañana", manana)}
+    ${buildFolder("Manana", manana)}
     ${buildFolder("Tarde", tarde)}
   </Document>
 </kml>`;
@@ -664,10 +650,17 @@ function applyThemeUi(theme) {
   ui.themeIcon.textContent = theme === "dark" ? "☀️" : "🌙";
 }
 
-function mapIdForTheme(theme) {
-  if (theme === "dark" && MAP_ID_DARK && !MAP_ID_DARK.startsWith("REEMPLAZA")) return MAP_ID_DARK;
-  if (theme === "light" && MAP_ID_LIGHT && !MAP_ID_LIGHT.startsWith("REEMPLAZA")) return MAP_ID_LIGHT;
-  return undefined;
+function setLeafletTheme(theme) {
+  const config = TILE_LAYERS[theme] || TILE_LAYERS.light;
+
+  if (state.tileLayer) {
+    state.map.removeLayer(state.tileLayer);
+  }
+
+  state.tileLayer = L.tileLayer(config.url, {
+    ...config.options,
+    maxZoom: 20
+  }).addTo(state.map);
 }
 
 function setTheme(theme) {
@@ -676,7 +669,7 @@ function setTheme(theme) {
   applyThemeUi(theme);
 
   if (state.map) {
-    state.map.setOptions({ mapId: mapIdForTheme(theme) });
+    setLeafletTheme(theme);
   }
 }
 
@@ -700,9 +693,7 @@ function attachUiEvents() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        state.map.panTo(coords);
-        state.map.setZoom(16);
+        state.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.8 });
       },
       () => toast("No se pudo obtener tu ubicacion.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -766,29 +757,23 @@ async function loadData() {
   toast(`Cargado: ${filename} (${state.allData.length} registros)`);
 }
 
+function createMap() {
+  state.map = L.map("map", {
+    zoomControl: true,
+    preferCanvas: true
+  }).setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13);
+
+  state.markersLayer = L.layerGroup().addTo(state.map);
+  setLeafletTheme(currentTheme());
+}
+
 window.initMap = async function initMap() {
   cacheDom();
   adjustFabOffset();
 
   const savedTheme = window.localStorage.getItem("prefers-theme") || "light";
   setTheme(savedTheme);
-
-  if (!(window.google && google.maps)) {
-    window.alert("No cargo Google Maps. Revisa tu API key.");
-    return;
-  }
-
-  state.map = new google.maps.Map(document.getElementById("map"), {
-    center: PACHACAMAC_CENTER,
-    zoom: 13,
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: true,
-    mapId: mapIdForTheme(currentTheme())
-  });
-
-  state.infoWindow = new google.maps.InfoWindow();
-
+  createMap();
   attachUiEvents();
 
   try {
