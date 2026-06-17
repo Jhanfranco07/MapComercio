@@ -42,6 +42,8 @@ const visorState = {
   giroColorMap: {},
   toastTimer: null,
   refreshTimer: null,
+  mapPanTimer: null,
+  mapPanMode: false,
   hasFittedBounds: false
 };
 
@@ -59,6 +61,7 @@ function cacheVisorDom() {
   visorUi.legendGiros = document.getElementById("legendGiros");
   visorUi.btnReset = document.getElementById("btnReset");
   visorUi.btnLoc = document.getElementById("btnLoc");
+  visorUi.btnMapPan = document.getElementById("btnMapPan");
   visorUi.themeToggle = document.getElementById("themeToggle");
   visorUi.themeIcon = document.getElementById("themeIcon");
   visorUi.toast = document.getElementById("toast");
@@ -451,19 +454,43 @@ function visorApplyMapGestureMode() {
   const scrollFriendly = window.innerWidth <= 899;
   const container = visorState.map.getContainer();
   container.classList.toggle("scroll-friendly-map", scrollFriendly);
+  container.classList.toggle("map-pan-active", scrollFriendly && visorState.mapPanMode);
+  visorUi.btnMapPan?.classList.toggle("active", scrollFriendly && visorState.mapPanMode);
+  visorUi.btnMapPan?.setAttribute("aria-pressed", scrollFriendly && visorState.mapPanMode ? "true" : "false");
 
   if (scrollFriendly) {
-    visorState.map.dragging.disable();
-    visorState.map.touchZoom.disable();
+    if (visorState.mapPanMode) {
+      visorState.map.dragging.enable();
+    } else {
+      visorState.map.dragging.disable();
+    }
+    visorState.map.touchZoom.enable();
     visorState.map.doubleClickZoom.disable();
     visorState.map.boxZoom.disable();
     return;
   }
 
+  visorState.mapPanMode = false;
+  window.clearTimeout(visorState.mapPanTimer);
   visorState.map.dragging.enable();
   visorState.map.touchZoom.enable();
   visorState.map.doubleClickZoom.enable();
   visorState.map.boxZoom.enable();
+}
+
+function visorToggleMapPanMode() {
+  if (!visorState.map || window.innerWidth > 899) return;
+  visorState.mapPanMode = !visorState.mapPanMode;
+  visorApplyMapGestureMode();
+
+  window.clearTimeout(visorState.mapPanTimer);
+  if (visorState.mapPanMode) {
+    visorToast("Mover mapa activo. Usa un dedo para arrastrar o dos dedos para zoom.");
+    visorState.mapPanTimer = window.setTimeout(() => {
+      visorState.mapPanMode = false;
+      visorApplyMapGestureMode();
+    }, 18000);
+  }
 }
 
 function visorClearMarkers() {
@@ -786,6 +813,8 @@ function visorAttachUiEvents() {
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });
+
+  visorUi.btnMapPan?.addEventListener("click", visorToggleMapPanMode);
 
   visorUi.themeToggle.addEventListener("click", () => {
     const next = visorTheme() === "dark" ? "light" : "dark";

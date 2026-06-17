@@ -49,6 +49,8 @@ const state = {
   giroColorMap: {},
   toastTimer: null,
   refreshTimer: null,
+  mapPanTimer: null,
+  mapPanMode: false,
   hasFittedBounds: false
 };
 
@@ -76,6 +78,7 @@ function cacheDom() {
   ui.btnClear = document.getElementById("btnClear");
   ui.btnReset = document.getElementById("btnReset");
   ui.btnLoc = document.getElementById("btnLoc");
+  ui.btnMapPan = document.getElementById("btnMapPan");
   ui.personSelect = document.getElementById("personSelect");
   ui.coordPreview = document.getElementById("coordPreview");
   ui.exportBar = document.getElementById("exportBar");
@@ -500,19 +503,43 @@ function applyMapGestureMode() {
   const scrollFriendly = window.innerWidth <= 899;
   const container = state.map.getContainer();
   container.classList.toggle("scroll-friendly-map", scrollFriendly);
+  container.classList.toggle("map-pan-active", scrollFriendly && state.mapPanMode);
+  ui.btnMapPan?.classList.toggle("active", scrollFriendly && state.mapPanMode);
+  ui.btnMapPan?.setAttribute("aria-pressed", scrollFriendly && state.mapPanMode ? "true" : "false");
 
   if (scrollFriendly) {
-    state.map.dragging.disable();
-    state.map.touchZoom.disable();
+    if (state.mapPanMode) {
+      state.map.dragging.enable();
+    } else {
+      state.map.dragging.disable();
+    }
+    state.map.touchZoom.enable();
     state.map.doubleClickZoom.disable();
     state.map.boxZoom.disable();
     return;
   }
 
+  state.mapPanMode = false;
+  window.clearTimeout(state.mapPanTimer);
   state.map.dragging.enable();
   state.map.touchZoom.enable();
   state.map.doubleClickZoom.enable();
   state.map.boxZoom.enable();
+}
+
+function toggleMapPanMode() {
+  if (!state.map || window.innerWidth > 899) return;
+  state.mapPanMode = !state.mapPanMode;
+  applyMapGestureMode();
+
+  window.clearTimeout(state.mapPanTimer);
+  if (state.mapPanMode) {
+    toast("Mover mapa activo. Usa un dedo para arrastrar o dos dedos para zoom.");
+    state.mapPanTimer = window.setTimeout(() => {
+      state.mapPanMode = false;
+      applyMapGestureMode();
+    }, 18000);
+  }
 }
 
 function clearMarkers() {
@@ -1109,6 +1136,8 @@ function attachUiEvents() {
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });
+
+  ui.btnMapPan?.addEventListener("click", toggleMapPanMode);
 
   ui.personSelect.addEventListener("change", (event) => {
     state.selectedId = event.target.value || "";
