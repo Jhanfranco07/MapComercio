@@ -2316,6 +2316,11 @@ button:focus-visible {
     box-shadow: 0 16px 34px rgba(65, 0, 4, 0.12);
   }
 
+  .scroll-friendly-map.leaflet-container,
+  .scroll-friendly-map .leaflet-map-pane {
+    touch-action: pan-y !important;
+  }
+
   .main-map {
     height: calc(100dvh - var(--topbar-h) - var(--bottom-nav-h) - 128px);
     min-height: 520px;

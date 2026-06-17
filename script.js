@@ -495,6 +495,26 @@ function currentMapMode() {
   return ui.mapModeInputs.find((input) => input.checked)?.value || "vigentes";
 }
 
+function applyMapGestureMode() {
+  if (!state.map) return;
+  const scrollFriendly = window.innerWidth <= 899;
+  const container = state.map.getContainer();
+  container.classList.toggle("scroll-friendly-map", scrollFriendly);
+
+  if (scrollFriendly) {
+    state.map.dragging.disable();
+    state.map.touchZoom.disable();
+    state.map.doubleClickZoom.disable();
+    state.map.boxZoom.disable();
+    return;
+  }
+
+  state.map.dragging.enable();
+  state.map.touchZoom.enable();
+  state.map.doubleClickZoom.enable();
+  state.map.boxZoom.enable();
+}
+
 function clearMarkers() {
   state.markersLayer.clearLayers();
 }
@@ -1253,6 +1273,8 @@ function createMap() {
   state.canvasRenderer = L.canvas({ padding: 0.25 });
   state.markersLayer = createClusterLayer().addTo(state.map);
   setLeafletTheme(currentTheme());
+  applyMapGestureMode();
+  window.addEventListener("resize", applyMapGestureMode);
 }
 
 window.initMap = async function initMap() {

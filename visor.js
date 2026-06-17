@@ -446,6 +446,26 @@ function visorSetAppMode(mode) {
   }
 }
 
+function visorApplyMapGestureMode() {
+  if (!visorState.map) return;
+  const scrollFriendly = window.innerWidth <= 899;
+  const container = visorState.map.getContainer();
+  container.classList.toggle("scroll-friendly-map", scrollFriendly);
+
+  if (scrollFriendly) {
+    visorState.map.dragging.disable();
+    visorState.map.touchZoom.disable();
+    visorState.map.doubleClickZoom.disable();
+    visorState.map.boxZoom.disable();
+    return;
+  }
+
+  visorState.map.dragging.enable();
+  visorState.map.touchZoom.enable();
+  visorState.map.doubleClickZoom.enable();
+  visorState.map.boxZoom.enable();
+}
+
 function visorClearMarkers() {
   visorState.markersLayer.clearLayers();
 }
@@ -815,6 +835,8 @@ function visorCreateMap() {
   visorState.canvasRenderer = L.canvas({ padding: 0.25 });
   visorState.markersLayer = visorCreateClusterLayer().addTo(visorState.map);
   visorSetLeafletTheme(visorTheme());
+  visorApplyMapGestureMode();
+  window.addEventListener("resize", visorApplyMapGestureMode);
 }
 
 async function visorLoadData() {
