@@ -24,13 +24,29 @@ function normalizePrivateKey(value) {
 
   if (!key) return key;
 
-  if (key.includes("-----BEGIN PRIVATE KEY-----") && !key.includes("\n")) {
+  const beginMarker = "-----BEGIN PRIVATE KEY-----";
+  const endMarker = "-----END PRIVATE KEY-----";
+  const beginIndex = key.indexOf(beginMarker);
+  const endIndex = key.indexOf(endMarker);
+  if (beginIndex >= 0 && endIndex >= 0) {
+    key = key.slice(beginIndex, endIndex + endMarker.length);
+  }
+
+  if (key.includes(beginMarker) && !key.includes("\n")) {
     key = key
-      .replace("-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----\n")
-      .replace("-----END PRIVATE KEY-----", "\n-----END PRIVATE KEY-----");
+      .replace(beginMarker, `${beginMarker}\n`)
+      .replace(endMarker, `\n${endMarker}`);
   }
 
   return key;
+}
+
+function parseServiceAccountJson(value) {
+  const parsed = JSON.parse(stripWrappingQuotes(value));
+  if (parsed.private_key) {
+    parsed.private_key = normalizePrivateKey(parsed.private_key);
+  }
+  return parsed;
 }
 
 function getServiceAccount() {
@@ -38,13 +54,17 @@ function getServiceAccount() {
     process.env.GCP_SERVICE_ACCOUNT ||
     process.env.GOOGLE_SERVICE_ACCOUNT_JSON ||
     process.env.gcp_service_account;
+  const rawBase64 =
+    process.env.GCP_SERVICE_ACCOUNT_BASE64 ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_BASE64;
 
   if (rawJson) {
-    const parsed = JSON.parse(stripWrappingQuotes(rawJson));
-    if (parsed.private_key) {
-      parsed.private_key = normalizePrivateKey(parsed.private_key);
-    }
-    return parsed;
+    return parseServiceAccountJson(rawJson);
+  }
+
+  if (rawBase64) {
+    const decoded = Buffer.from(stripWrappingQuotes(rawBase64), "base64").toString("utf8");
+    return parseServiceAccountJson(decoded);
   }
 
   if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {

@@ -3,6 +3,7 @@
 .env.production
 .env.development
 .env.vercel
+.env.vercel.base64
 node_modules/
 .next/
 .vercel/
