@@ -450,6 +450,49 @@ function visorClearMarkers() {
   visorState.markersLayer.clearLayers();
 }
 
+function visorCreateClusterLayer() {
+  if (!L.markerClusterGroup) return L.layerGroup();
+
+  return L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    zoomToBoundsOnClick: true,
+    spiderLegPolylineOptions: {
+      weight: 2,
+      color: "#820012",
+      opacity: 0.35
+    },
+    maxClusterRadius: visorIsCompactDevice() ? 42 : 36,
+    iconCreateFunction(cluster) {
+      const markers = cluster.getAllChildMarkers();
+      const expired = markers.filter((marker) => marker.options.recordStatus === "Vencido").length;
+      const total = markers.length;
+      const active = total - expired;
+      const tone = expired === total ? "expired" : active === total ? "active" : "mixed";
+      return L.divIcon({
+        className: `commerce-cluster ${tone}`,
+        html: `<span>${total}</span>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+      });
+    }
+  });
+}
+
+function visorMarkerIconForRecord(record) {
+  const isExpired = visorPermitStatus(record) === "Vencido";
+  const fillColor = isExpired ? VISOR_EXPIRED_MARKER_STYLE.fillColor : visorColorForGiro(visorPrimaryRubro(record));
+  const borderColor = isExpired ? VISOR_EXPIRED_MARKER_STYLE.color : visorStrokeForTurno(record.turno);
+  const size = visorIsCompactDevice() ? 18 : 20;
+
+  return L.divIcon({
+    className: "commerce-marker-icon",
+    html: `<span style="--marker-fill:${fillColor};--marker-border:${borderColor};--marker-opacity:${isExpired ? 0.58 : 0.96};--marker-size:${size}px"></span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+}
+
 function visorRenderMarkers(data, fitView = false) {
   visorClearMarkers();
   const validRecords = data.filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
@@ -465,17 +508,12 @@ function visorRenderMarkers(data, fitView = false) {
   const bounds = [];
 
   validRecords.forEach((record) => {
-    const isExpired = visorPermitStatus(record) === "Vencido";
-    const marker = L.circleMarker([record.lat, record.lng], {
-      renderer: visorState.canvasRenderer,
-      radius: isExpired ? (compactDevice ? 6 : 7) : (compactDevice ? 7 : 8),
-      weight: compactDevice ? 3 : 4,
-      color: isExpired ? VISOR_EXPIRED_MARKER_STYLE.color : visorStrokeForTurno(record.turno),
-      fillColor: isExpired ? VISOR_EXPIRED_MARKER_STYLE.fillColor : visorColorForGiro(visorPrimaryRubro(record)),
-      fillOpacity: isExpired ? VISOR_EXPIRED_MARKER_STYLE.fillOpacity : 0.92,
-      opacity: isExpired ? VISOR_EXPIRED_MARKER_STYLE.opacity : 0.95,
-      dashArray: isExpired ? VISOR_EXPIRED_MARKER_STYLE.dashArray : null,
-      bubblingMouseEvents: false
+    const status = visorPermitStatus(record);
+    const marker = L.marker([record.lat, record.lng], {
+      icon: visorMarkerIconForRecord(record),
+      recordStatus: status,
+      bubblingMouseEvents: false,
+      keyboard: false
     });
 
     marker.on("click", () => visorRenderMerchantPanel(record, "summary"));
@@ -774,7 +812,7 @@ function visorCreateMap() {
   }).setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13, { animate: false });
 
   visorState.canvasRenderer = L.canvas({ padding: 0.25 });
-  visorState.markersLayer = L.layerGroup().addTo(visorState.map);
+  visorState.markersLayer = visorCreateClusterLayer().addTo(visorState.map);
   visorSetLeafletTheme(visorTheme());
 }
 

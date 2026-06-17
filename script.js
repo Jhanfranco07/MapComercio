@@ -499,6 +499,49 @@ function clearMarkers() {
   state.markersLayer.clearLayers();
 }
 
+function createClusterLayer() {
+  if (!L.markerClusterGroup) return L.layerGroup();
+
+  return L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    zoomToBoundsOnClick: true,
+    spiderLegPolylineOptions: {
+      weight: 2,
+      color: "#820012",
+      opacity: 0.35
+    },
+    maxClusterRadius: isCompactDevice() ? 42 : 36,
+    iconCreateFunction(cluster) {
+      const markers = cluster.getAllChildMarkers();
+      const expired = markers.filter((marker) => marker.options.recordStatus === "Vencido").length;
+      const total = markers.length;
+      const active = total - expired;
+      const tone = expired === total ? "expired" : active === total ? "active" : "mixed";
+      return L.divIcon({
+        className: `commerce-cluster ${tone}`,
+        html: `<span>${total}</span>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+      });
+    }
+  });
+}
+
+function markerIconForRecord(record) {
+  const isExpired = permitStatus(record) === "Vencido";
+  const fillColor = isExpired ? EXPIRED_MARKER_STYLE.fillColor : colorForGiro(primaryRubro(record));
+  const borderColor = isExpired ? EXPIRED_MARKER_STYLE.color : strokeForTurno(record.turno);
+  const size = isCompactDevice() ? 18 : 20;
+
+  return L.divIcon({
+    className: "commerce-marker-icon",
+    html: `<span style="--marker-fill:${fillColor};--marker-border:${borderColor};--marker-opacity:${isExpired ? 0.58 : 0.96};--marker-size:${size}px"></span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+}
+
 function renderMarkers(data, fitView = false) {
   clearMarkers();
 
@@ -513,17 +556,12 @@ function renderMarkers(data, fitView = false) {
   const compactDevice = isCompactDevice();
   const bounds = [];
   validRecords.forEach((record) => {
-    const isExpired = permitStatus(record) === "Vencido";
-    const marker = L.circleMarker([record.lat, record.lng], {
-      renderer: state.canvasRenderer,
-      radius: isExpired ? (compactDevice ? 6 : 7) : (compactDevice ? 7 : 8),
-      weight: compactDevice ? 3 : 4,
-      color: isExpired ? EXPIRED_MARKER_STYLE.color : strokeForTurno(record.turno),
-      fillColor: isExpired ? EXPIRED_MARKER_STYLE.fillColor : colorForGiro(primaryRubro(record)),
-      fillOpacity: isExpired ? EXPIRED_MARKER_STYLE.fillOpacity : 0.92,
-      opacity: isExpired ? EXPIRED_MARKER_STYLE.opacity : 0.95,
-      dashArray: isExpired ? EXPIRED_MARKER_STYLE.dashArray : null,
-      bubblingMouseEvents: false
+    const status = permitStatus(record);
+    const marker = L.marker([record.lat, record.lng], {
+      icon: markerIconForRecord(record),
+      recordStatus: status,
+      bubblingMouseEvents: false,
+      keyboard: false
     });
 
     marker.on("click", () => renderMerchantPanel(record, "summary"));
@@ -1212,7 +1250,7 @@ function createMap() {
   }).setView([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 13, { animate: false });
 
   state.canvasRenderer = L.canvas({ padding: 0.25 });
-  state.markersLayer = L.layerGroup().addTo(state.map);
+  state.markersLayer = createClusterLayer().addTo(state.map);
   setLeafletTheme(currentTheme());
 }
 
