@@ -57,6 +57,7 @@ const ui = {};
 function cacheDom() {
   ui.giroFilter = document.getElementById("giroFilter");
   ui.turnoFilter = document.getElementById("turnoFilter");
+  ui.mapModeInputs = Array.from(document.querySelectorAll('input[name="mapMode"]'));
   ui.searchInput = document.getElementById("searchInput");
   ui.totalCount = document.getElementById("totalCount");
   ui.visibleCount = document.getElementById("visibleCount");
@@ -488,6 +489,10 @@ function setAppMode(mode) {
   }
 }
 
+function currentMapMode() {
+  return ui.mapModeInputs.find((input) => input.checked)?.value || "vigentes";
+}
+
 function clearMarkers() {
   state.markersLayer.clearLayers();
 }
@@ -561,17 +566,19 @@ function getSearchableValues(record) {
 function applyFilters() {
   const selectedGiro = ui.giroFilter.value;
   const selectedTurno = ui.turnoFilter.value;
+  const selectedMapMode = currentMapMode();
   const query = normalizeText(ui.searchInput.value);
 
   return state.allData.filter((record) => {
     const hasCoords = Number.isFinite(record.lat) && Number.isFinite(record.lng);
     if (!hasCoords) return false;
 
+    const statusMatches = selectedMapMode === "historico" || permitStatus(record) === "Vigente";
     const giroMatches = selectedGiro === "todos" || recordRubros(record).some((rubro) => colorKey(rubro) === colorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
     const queryMatches = !query || searchMatches(record, query);
 
-    return giroMatches && turnoMatches && queryMatches;
+    return statusMatches && giroMatches && turnoMatches && queryMatches;
   });
 }
 
@@ -1018,11 +1025,14 @@ function setTheme(theme) {
 function attachUiEvents() {
   ui.giroFilter.addEventListener("change", refresh);
   ui.turnoFilter.addEventListener("change", refresh);
+  ui.mapModeInputs.forEach((input) => input.addEventListener("change", refreshAndFit));
   ui.searchInput.addEventListener("input", () => scheduleRefresh(false));
 
   ui.btnReset.addEventListener("click", () => {
     ui.giroFilter.value = "todos";
     ui.turnoFilter.value = "todos";
+    const defaultMode = ui.mapModeInputs.find((input) => input.value === "vigentes");
+    if (defaultMode) defaultMode.checked = true;
     ui.searchInput.value = "";
     refreshAndFit();
   });

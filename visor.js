@@ -50,6 +50,7 @@ const visorUi = {};
 function cacheVisorDom() {
   visorUi.giroFilter = document.getElementById("giroFilter");
   visorUi.turnoFilter = document.getElementById("turnoFilter");
+  visorUi.mapModeInputs = Array.from(document.querySelectorAll('input[name="mapMode"]'));
   visorUi.searchInput = document.getElementById("searchInput");
   visorUi.totalCount = document.getElementById("totalCount");
   visorUi.visibleCount = document.getElementById("visibleCount");
@@ -68,6 +69,10 @@ function cacheVisorDom() {
   visorUi.searchModule = document.getElementById("searchModule");
   visorUi.moduleSearchInput = document.getElementById("moduleSearchInput");
   visorUi.searchResults = document.getElementById("searchResults");
+}
+
+function visorCurrentMapMode() {
+  return visorUi.mapModeInputs.find((input) => input.checked)?.value || "vigentes";
 }
 
 const visorNormalizeKey = (value) => String(value || "")
@@ -515,13 +520,15 @@ function visorGetSearchableValues(record) {
 function visorApplyFilters() {
   const selectedGiro = visorUi.giroFilter.value;
   const selectedTurno = visorUi.turnoFilter.value;
+  const selectedMapMode = visorCurrentMapMode();
   const query = visorNormalizeText(visorUi.searchInput.value);
 
   return visorState.allData.filter((record) => {
+    const statusMatches = selectedMapMode === "historico" || visorPermitStatus(record) === "Vigente";
     const giroMatches = selectedGiro === "todos" || visorRecordRubros(record).some((rubro) => visorColorKey(rubro) === visorColorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
     const queryMatches = !query || visorSearchMatches(record, query);
-    return giroMatches && turnoMatches && queryMatches;
+    return statusMatches && giroMatches && turnoMatches && queryMatches;
   });
 }
 
@@ -697,11 +704,14 @@ function visorSetMobileFiltersOpen(forceOpen) {
 function visorAttachUiEvents() {
   visorUi.giroFilter.addEventListener("change", () => visorRefresh(false));
   visorUi.turnoFilter.addEventListener("change", () => visorRefresh(false));
+  visorUi.mapModeInputs.forEach((input) => input.addEventListener("change", () => visorRefresh(true)));
   visorUi.searchInput.addEventListener("input", () => visorScheduleRefresh(false));
 
   visorUi.btnReset.addEventListener("click", () => {
     visorUi.giroFilter.value = "todos";
     visorUi.turnoFilter.value = "todos";
+    const defaultMode = visorUi.mapModeInputs.find((input) => input.value === "vigentes");
+    if (defaultMode) defaultMode.checked = true;
     visorUi.searchInput.value = "";
     visorRefresh(true);
   });

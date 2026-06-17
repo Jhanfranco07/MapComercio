@@ -50,6 +50,20 @@
         </select>
       </div>
 
+      <fieldset class="group compact-group map-mode-group">
+        <legend><span class="material-symbols-outlined" aria-hidden="true">layers</span> Vista</legend>
+        <div class="segmented-control" role="radiogroup" aria-label="Modo del mapa">
+          <label>
+            <input type="radio" name="mapMode" value="vigentes" checked />
+            <span>Vigentes</span>
+          </label>
+          <label>
+            <input type="radio" name="mapMode" value="historico" />
+            <span>Histórico</span>
+          </label>
+        </div>
+      </fieldset>
+
       <div class="group grow">
         <label for="searchInput"><span class="material-symbols-outlined" aria-hidden="true">search</span> Buscar</label>
         <input id="searchInput" class="search" type="search" placeholder="Nombre, productos, zona..." />
