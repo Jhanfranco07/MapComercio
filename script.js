@@ -567,7 +567,6 @@ function applyFilters() {
   const selectedGiro = ui.giroFilter.value;
   const selectedTurno = ui.turnoFilter.value;
   const selectedMapMode = currentMapMode();
-  const query = normalizeText(ui.searchInput.value);
 
   return state.allData.filter((record) => {
     const hasCoords = Number.isFinite(record.lat) && Number.isFinite(record.lng);
@@ -576,9 +575,8 @@ function applyFilters() {
     const statusMatches = selectedMapMode === "historico" || permitStatus(record) === "Vigente";
     const giroMatches = selectedGiro === "todos" || recordRubros(record).some((rubro) => colorKey(rubro) === colorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
-    const queryMatches = !query || searchMatches(record, query);
 
-    return statusMatches && giroMatches && turnoMatches && queryMatches;
+    return statusMatches && giroMatches && turnoMatches;
   });
 }
 

@@ -521,14 +521,12 @@ function visorApplyFilters() {
   const selectedGiro = visorUi.giroFilter.value;
   const selectedTurno = visorUi.turnoFilter.value;
   const selectedMapMode = visorCurrentMapMode();
-  const query = visorNormalizeText(visorUi.searchInput.value);
 
   return visorState.allData.filter((record) => {
     const statusMatches = selectedMapMode === "historico" || visorPermitStatus(record) === "Vigente";
     const giroMatches = selectedGiro === "todos" || visorRecordRubros(record).some((rubro) => visorColorKey(rubro) === visorColorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
-    const queryMatches = !query || visorSearchMatches(record, query);
-    return statusMatches && giroMatches && turnoMatches && queryMatches;
+    return statusMatches && giroMatches && turnoMatches;
   });
 }
 
