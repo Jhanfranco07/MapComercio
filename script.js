@@ -84,6 +84,7 @@ function cacheDom() {
   ui.toast = document.getElementById("toast");
   ui.btnFilters = document.getElementById("btnFilters");
   ui.mainFilters = document.getElementById("mainFilters");
+  ui.bottomAdmin = document.getElementById("bottomAdmin");
   ui.bottomSearch = document.getElementById("bottomSearch");
   ui.bottomMap = document.getElementById("bottomMap");
   ui.searchModule = document.getElementById("searchModule");
@@ -480,8 +481,9 @@ function renderSearchResults(query = "") {
 
 function setAppMode(mode) {
   document.body.classList.toggle("search-mode", mode === "search");
+  ui.bottomAdmin?.classList.toggle("active", mode === "admin");
   ui.bottomSearch?.classList.toggle("active", mode === "search");
-  ui.bottomMap?.classList.toggle("active", mode !== "search");
+  ui.bottomMap?.classList.toggle("active", mode === "map");
   closeMerchantPanel();
   if (mode === "search") {
     renderSearchResults(ui.moduleSearchInput?.value || "");
