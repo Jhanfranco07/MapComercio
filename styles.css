@@ -1727,6 +1727,44 @@ button:focus-visible {
   color: var(--primary);
 }
 
+.diagnostic-grid .diagnostic-metric {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--metric-color, #64748b) 28%, var(--outline));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--metric-color, #64748b) 14%, transparent), transparent 58%),
+    color-mix(in srgb, var(--metric-color, #64748b) 7%, var(--surface-card));
+}
+
+.diagnostic-grid .diagnostic-metric::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--metric-color, #64748b);
+  opacity: 0.9;
+}
+
+.diagnostic-grid .diagnostic-metric span {
+  color: color-mix(in srgb, var(--metric-color, #64748b) 55%, var(--text-muted));
+  font-weight: 750;
+}
+
+.diagnostic-grid .diagnostic-metric strong {
+  color: color-mix(in srgb, var(--metric-color, #64748b) 80%, var(--text));
+}
+
+.diagnostic-grid .diagnostic-metric:nth-child(1) { --metric-color: #64748b; }
+.diagnostic-grid .diagnostic-metric:nth-child(2) { --metric-color: #2563eb; }
+.diagnostic-grid .diagnostic-metric:nth-child(3) { --metric-color: #4f46e5; }
+.diagnostic-grid .diagnostic-metric:nth-child(4) { --metric-color: #059669; }
+.diagnostic-grid .diagnostic-metric:nth-child(5) { --metric-color: #dc2626; }
+.diagnostic-grid .diagnostic-metric:nth-child(6) { --metric-color: #d97706; }
+.diagnostic-grid .diagnostic-metric:nth-child(7) { --metric-color: #7c3aed; }
+.diagnostic-grid .diagnostic-metric:nth-child(8) { --metric-color: #0891b2; }
+.diagnostic-grid .diagnostic-metric:nth-child(9) { --metric-color: #16a34a; }
+.diagnostic-grid .diagnostic-metric:nth-child(10) { --metric-color: #9333ea; }
+
 .btn,
 .fab {
   display: inline-flex;
