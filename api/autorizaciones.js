@@ -42,7 +42,16 @@ function normalizePrivateKey(value) {
 }
 
 function parseServiceAccountJson(value) {
-  const parsed = JSON.parse(stripWrappingQuotes(value));
+  const cleanValue = stripWrappingQuotes(value);
+  let parsed;
+
+  try {
+    parsed = JSON.parse(cleanValue);
+  } catch (error) {
+    const decoded = Buffer.from(cleanValue, "base64").toString("utf8");
+    parsed = JSON.parse(decoded);
+  }
+
   if (parsed.private_key) {
     parsed.private_key = normalizePrivateKey(parsed.private_key);
   }
