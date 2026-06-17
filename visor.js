@@ -182,20 +182,20 @@ function visorPrimaryRubro(record) {
 
 function visorIconForRubro(record) {
   const rubro = visorNormalizeText(visorRecordRubros(record).join(" "));
-  if (rubro.includes("ASEDIPA")) return "local_cafe";
-  if (rubro.includes("BEBIDAS")) return "local_drink";
-  if (rubro.includes("SANDWICH")) return "lunch_dining";
-  if (rubro.includes("FRUTAS") || rubro.includes("VERDURAS")) return "nutrition";
-  if (rubro.includes("POTAJES")) return "soup_kitchen";
-  if (rubro.includes("DULCES")) return "icecream";
-  if (rubro.includes("GOLOSINAS") || rubro.includes("CONFITERIA") || rubro.includes("CANCHITAS")) return "cookie";
-  if (rubro.includes("MERCER") || rubro.includes("BAZAR") || rubro.includes("UTILES")) return "shopping_bag";
-  if (rubro.includes("DIARIOS") || rubro.includes("LIBROS")) return "menu_book";
-  if (rubro.includes("ARTESAN")) return "palette";
-  if (rubro.includes("RELIGIOSOS")) return "church";
-  if (rubro.includes("LIMPIEZA")) return "cleaning_services";
-  if (rubro.includes("LLAVES") || rubro.includes("CERRAJER")) return "key";
-  if (rubro.includes("FOTOGRAF")) return "photo_camera";
+  if (rubro.includes("asedipa")) return "local_cafe";
+  if (rubro.includes("bebidas")) return "local_drink";
+  if (rubro.includes("sandwich")) return "lunch_dining";
+  if (rubro.includes("frutas") || rubro.includes("verduras")) return "grocery";
+  if (rubro.includes("potajes")) return "restaurant";
+  if (rubro.includes("dulces")) return "icecream";
+  if (rubro.includes("golosinas") || rubro.includes("confiteria") || rubro.includes("canchitas")) return "cookie";
+  if (rubro.includes("mercer") || rubro.includes("bazar") || rubro.includes("utiles")) return "shopping_bag";
+  if (rubro.includes("diarios") || rubro.includes("libros")) return "menu_book";
+  if (rubro.includes("artesan")) return "palette";
+  if (rubro.includes("religiosos")) return "church";
+  if (rubro.includes("limpieza")) return "cleaning_services";
+  if (rubro.includes("llaves") || rubro.includes("cerrajer")) return "key";
+  if (rubro.includes("fotograf")) return "photo_camera";
   return "storefront";
 }
 
