@@ -223,6 +223,25 @@ function primaryRubro(record) {
   return recordRubros(record)[0] || record.giro || "Sin rubro";
 }
 
+function iconForRubro(record) {
+  const rubro = normalizeText(recordRubros(record).join(" "));
+  if (rubro.includes("ASEDIPA")) return "local_cafe";
+  if (rubro.includes("BEBIDAS")) return "local_drink";
+  if (rubro.includes("SANDWICH")) return "lunch_dining";
+  if (rubro.includes("FRUTAS") || rubro.includes("VERDURAS")) return "nutrition";
+  if (rubro.includes("POTAJES")) return "soup_kitchen";
+  if (rubro.includes("DULCES")) return "icecream";
+  if (rubro.includes("GOLOSINAS") || rubro.includes("CONFITERIA") || rubro.includes("CANCHITAS")) return "cookie";
+  if (rubro.includes("MERCER") || rubro.includes("BAZAR") || rubro.includes("UTILES")) return "shopping_bag";
+  if (rubro.includes("DIARIOS") || rubro.includes("LIBROS")) return "menu_book";
+  if (rubro.includes("ARTESAN")) return "palette";
+  if (rubro.includes("RELIGIOSOS")) return "church";
+  if (rubro.includes("LIMPIEZA")) return "cleaning_services";
+  if (rubro.includes("LLAVES") || rubro.includes("CERRAJER")) return "key";
+  if (rubro.includes("FOTOGRAF")) return "photo_camera";
+  return "storefront";
+}
+
 function strokeForTurno(turno) {
   return TURNO_STROKES[turno] || TURNO_STROKES.manana;
 }
@@ -412,7 +431,7 @@ function renderMerchantPanel(record, mode = "summary") {
           : `
             <div class="summary-grid">
               <div><span>Giro</span><strong>${escapeHtml(recordRubros(record)[0] || "-")}</strong></div>
-              <div><span>Ubicacion</span><strong>${escapeHtml(record.zona || "-")}</strong></div>
+              <div><span>Ubicacion</span><strong>${escapeHtml(record.lugar_exacto || record.zona || "-")}</strong></div>
             </div>
             <div class="summary-actions">
               <button class="btn primary" type="button" data-action="detail"><span class="material-symbols-outlined">visibility</span> Ver detalle</button>
@@ -458,9 +477,10 @@ function renderSearchResults(query = "") {
   ui.searchResults.innerHTML = records.length
     ? records.map((record) => {
         const status = permitStatus(record);
+        const rubro = primaryRubro(record);
         return `
           <article class="merchant-card" data-id="${escapeHtml(record.id)}">
-            <div class="merchant-thumb"><span class="material-symbols-outlined">storefront</span></div>
+            <div class="merchant-thumb" style="--thumb-color:${colorForGiro(rubro)}"><span class="material-symbols-outlined">${iconForRubro(record)}</span></div>
             <div class="merchant-card-body">
               <div class="merchant-card-top">
                 <h3>${escapeHtml(record.nombre || "Sin nombre")}</h3>

@@ -180,6 +180,25 @@ function visorPrimaryRubro(record) {
   return visorRecordRubros(record)[0] || record.giro || "Sin rubro";
 }
 
+function visorIconForRubro(record) {
+  const rubro = visorNormalizeText(visorRecordRubros(record).join(" "));
+  if (rubro.includes("ASEDIPA")) return "local_cafe";
+  if (rubro.includes("BEBIDAS")) return "local_drink";
+  if (rubro.includes("SANDWICH")) return "lunch_dining";
+  if (rubro.includes("FRUTAS") || rubro.includes("VERDURAS")) return "nutrition";
+  if (rubro.includes("POTAJES")) return "soup_kitchen";
+  if (rubro.includes("DULCES")) return "icecream";
+  if (rubro.includes("GOLOSINAS") || rubro.includes("CONFITERIA") || rubro.includes("CANCHITAS")) return "cookie";
+  if (rubro.includes("MERCER") || rubro.includes("BAZAR") || rubro.includes("UTILES")) return "shopping_bag";
+  if (rubro.includes("DIARIOS") || rubro.includes("LIBROS")) return "menu_book";
+  if (rubro.includes("ARTESAN")) return "palette";
+  if (rubro.includes("RELIGIOSOS")) return "church";
+  if (rubro.includes("LIMPIEZA")) return "cleaning_services";
+  if (rubro.includes("LLAVES") || rubro.includes("CERRAJER")) return "key";
+  if (rubro.includes("FOTOGRAF")) return "photo_camera";
+  return "storefront";
+}
+
 function visorStrokeForTurno(turno) {
   return VISOR_TURNO_STROKES[turno] || VISOR_TURNO_STROKES.manana;
 }
@@ -368,7 +387,7 @@ function visorRenderMerchantPanel(record, mode = "summary") {
           : `
             <div class="summary-grid">
               <div><span>Giro</span><strong>${visorEscapeHtml(visorRecordRubros(record)[0] || "-")}</strong></div>
-              <div><span>Ubicacion</span><strong>${visorEscapeHtml(record.zona || "-")}</strong></div>
+              <div><span>Ubicacion</span><strong>${visorEscapeHtml(record.lugar_exacto || record.zona || "-")}</strong></div>
             </div>
             <div class="summary-actions">
               <button class="btn primary" type="button" data-action="detail"><span class="material-symbols-outlined">visibility</span> Ver detalle</button>
@@ -414,9 +433,10 @@ function visorRenderSearchResults(query = "") {
   visorUi.searchResults.innerHTML = records.length
     ? records.map((record) => {
         const status = visorPermitStatus(record);
+        const rubro = visorPrimaryRubro(record);
         return `
           <article class="merchant-card" data-id="${visorEscapeHtml(record.id)}">
-            <div class="merchant-thumb"><span class="material-symbols-outlined">storefront</span></div>
+            <div class="merchant-thumb" style="--thumb-color:${visorColorForGiro(rubro)}"><span class="material-symbols-outlined">${visorIconForRubro(record)}</span></div>
             <div class="merchant-card-body">
               <div class="merchant-card-top">
                 <h3>${visorEscapeHtml(record.nombre || "Sin nombre")}</h3>
