@@ -383,6 +383,20 @@ function visorRenderMerchantPanel(record, mode = "summary") {
 function visorSearchMatches(record, query) {
   const normalizedQuery = visorNormalizeText(query);
   if (!normalizedQuery) return true;
+
+  const statusAliases = {
+    VENCIDO: "VENCIDO",
+    VENCIDOS: "VENCIDO",
+    VIGENTE: "VIGENTE",
+    VIGENTES: "VIGENTE",
+    TRAMITE: "TRAMITE",
+    "EN TRAMITE": "TRAMITE"
+  };
+  const requestedStatus = statusAliases[normalizedQuery];
+  if (requestedStatus) {
+    return visorNormalizeText(visorPermitStatus(record)).includes(requestedStatus);
+  }
+
   return visorGetSearchableValues(record).some((value) => visorNormalizeText(value).includes(normalizedQuery));
 }
 
@@ -487,13 +501,13 @@ function visorGetSearchableValues(record) {
     record.horario,
     record.licencia,
     record.vigencia,
+    visorPermitStatus(record),
     ...permits.flatMap((item) => [
       item.licencia,
       item.vigencia,
       item.giro,
       item.productos,
-      item.lugar_exacto,
-      visorPermitStatus(item)
+      item.lugar_exacto
     ])
   ];
 }
@@ -506,7 +520,7 @@ function visorApplyFilters() {
   return visorState.allData.filter((record) => {
     const giroMatches = selectedGiro === "todos" || visorRecordRubros(record).some((rubro) => visorColorKey(rubro) === visorColorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
-    const queryMatches = !query || visorGetSearchableValues(record).some((value) => visorNormalizeText(value).includes(query));
+    const queryMatches = !query || visorSearchMatches(record, query);
     return giroMatches && turnoMatches && queryMatches;
   });
 }

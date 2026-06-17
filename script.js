@@ -430,6 +430,20 @@ function renderMerchantPanel(record, mode = "summary") {
 function searchMatches(record, query) {
   const normalizedQuery = normalizeText(query);
   if (!normalizedQuery) return true;
+
+  const statusAliases = {
+    VENCIDO: "VENCIDO",
+    VENCIDOS: "VENCIDO",
+    VIGENTE: "VIGENTE",
+    VIGENTES: "VIGENTE",
+    TRAMITE: "TRAMITE",
+    "EN TRAMITE": "TRAMITE"
+  };
+  const requestedStatus = statusAliases[normalizedQuery];
+  if (requestedStatus) {
+    return normalizeText(permitStatus(record)).includes(requestedStatus);
+  }
+
   return getSearchableValues(record).some((value) => normalizeText(value).includes(normalizedQuery));
 }
 
@@ -533,13 +547,13 @@ function getSearchableValues(record) {
     record.horario,
     record.licencia,
     record.vigencia,
+    permitStatus(record),
     ...permits.flatMap((item) => [
       item.licencia,
       item.vigencia,
       item.giro,
       item.productos,
-      item.lugar_exacto,
-      permitStatus(item)
+      item.lugar_exacto
     ])
   ];
 }
@@ -555,7 +569,7 @@ function applyFilters() {
 
     const giroMatches = selectedGiro === "todos" || recordRubros(record).some((rubro) => colorKey(rubro) === colorKey(selectedGiro));
     const turnoMatches = selectedTurno === "todos" || record.turno === selectedTurno;
-    const queryMatches = !query || getSearchableValues(record).some((value) => normalizeText(value).includes(query));
+    const queryMatches = !query || searchMatches(record, query);
 
     return giroMatches && turnoMatches && queryMatches;
   });
