@@ -8,3 +8,17 @@ node_modules/
 .vercel/
 dist/
 build/
+public/ambulantes_actualizado.csv
+public/ambulantes_actualizado.xlsx
+public/data-source.js
+public/index.html
+public/mapa1.svg
+public/negocios.html
+public/negocios66.xlsx
+public/peruHigh.svg
+public/script.js
+public/script.ts
+public/styles.css
+public/visor.js
+public/visor.ts
+public/visor_ambulantes.html

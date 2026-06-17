@@ -1,6 +1,7 @@
 {
   "name": "mapcomercio-main",
   "scripts": {
+    "build": "node scripts/build-static.js",
     "dev": "node local-server.js"
   },
   "dependencies": {

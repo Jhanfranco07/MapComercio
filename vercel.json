@@ -1,7 +1,13 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/vista", "destination": "/visor_ambulantes.html" },
+    { "source": "/visor", "destination": "/visor_ambulantes.html" },
+    { "source": "/policia", "destination": "/visor_ambulantes.html" },
     { "source": "/", "destination": "/index.html" }
   ]
 }
