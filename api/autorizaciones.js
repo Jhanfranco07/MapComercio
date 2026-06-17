@@ -86,10 +86,15 @@ module.exports = async function handler(req, res) {
       rows
     });
   } catch (error) {
+    const status = error.code || error.response?.status || 500;
+    const details = error.response?.data?.error?.message || error.message || "No se pudo leer Google Sheets";
     res.status(500).json({
       ok: false,
       source: "google_sheets",
-      error: error.message || "No se pudo leer Google Sheets"
+      error: status === 404
+        ? "Google Sheets no encontro la hoja. Verifica SPREADSHEET_ID_COMERCIO, AUTORIZACIONES_SHEET_NAME y que el Sheet este compartido con la cuenta de servicio."
+        : details,
+      status
     });
   }
 };
