@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Buscador de Comerciantes Ambulatorios - Pachacámac</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#ffdad7",
+                    "surface-container": "#ffe9e7",
+                    "tertiary": "#00435d",
+                    "on-error-container": "#93000a",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#d9e3f6",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#ffedeb",
+                    "on-primary-fixed": "#410004",
+                    "surface": "#fff8f7",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#d6e0f3",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "on-surface-variant": "#5a413f",
+                    "primary-container": "#a61d24",
+                    "surface-variant": "#f7ddda",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "background": "#fff8f7",
+                    "tertiary-fixed": "#c3e8ff",
+                    "surface-container-high": "#fde2e0",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ffb3ae",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#ffb9b4",
+                    "on-primary-fixed-variant": "#910817",
+                    "surface-container-highest": "#f7ddda",
+                    "on-surface": "#261817",
+                    "surface-tint": "#b3272c",
+                    "surface-bright": "#fff8f7",
+                    "on-tertiary-fixed": "#001e2c",
+                    "on-secondary-container": "#596373",
+                    "outline-variant": "#e2bebc",
+                    "surface-container-low": "#fff0ef",
+                    "on-tertiary-fixed-variant": "#004c69",
+                    "inverse-surface": "#3c2c2b",
+                    "on-tertiary-container": "#91d3f9",
+                    "on-secondary-fixed": "#121c2a",
+                    "tertiary-container": "#005c7d",
+                    "on-background": "#261817",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed-dim": "#8dcff5",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#eed4d2",
+                    "primary": "#820012",
+                    "primary-fixed-dim": "#ffb3ae",
+                    "outline": "#8d706e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "container-padding": "16px",
+                    "stack-lg": "24px",
+                    "gutter": "16px",
+                    "stack-md": "16px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "button": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "button": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #fff8f7;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .search-container-focus {
+            outline: 2px solid #820012;
+            outline-offset: -1px;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-container-padding h-14 bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">account_balance</span>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Municipalidad de Pachacámac</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<main class="mt-14 pb-24 flex-grow container mx-auto max-w-2xl px-container-padding">
+<!-- Search Header Section -->
+<section class="pt-stack-lg sticky top-14 bg-background z-40 pb-stack-md">
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container-lowest border border-outline rounded-xl font-body-lg text-body-lg focus:ring-0 focus:border-primary transition-all duration-200 shadow-sm" placeholder="Buscar por nombre, DNI o número de puesto" type="text"/>
+</div>
+<!-- Fast Filters -->
+<div class="flex gap-stack-sm overflow-x-auto pt-stack-md scrollbar-hide">
+<button class="px-4 py-2 bg-primary-container text-on-primary-container rounded-full whitespace-nowrap font-label-md text-label-md shadow-sm">Todos</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full whitespace-nowrap font-label-md text-label-md border border-outline-variant hover:bg-surface-variant transition-colors">Emolienteros</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full whitespace-nowrap font-label-md text-label-md border border-outline-variant hover:bg-surface-variant transition-colors">Frutas y Verduras</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full whitespace-nowrap font-label-md text-label-md border border-outline-variant hover:bg-surface-variant transition-colors">Golosinas</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full whitespace-nowrap font-label-md text-label-md border border-outline-variant hover:bg-surface-variant transition-colors">Artesanías</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full whitespace-nowrap font-label-md text-label-md border border-outline-variant hover:bg-surface-variant transition-colors">Comida al Paso</button>
+</div>
+</section>
+<!-- Results List -->
+<div class="space-y-stack-md mt-4">
+<!-- Merchant Card 1 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md flex gap-gutter shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A local street vendor stall selling fresh fruits and vegetables in a clean, organized manner. The scene represents professional street commerce within the municipality, showing fresh produce in baskets under a tidy canopy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC70VK909BTSXItSfop2wO7ilU9tag0RWt2vzksWkoZ5QnwiEkFpMTeFEkGAInnDpnsZjiQFBJpdHCV_aaFOtB-hSVQayJPaXOUP6JvSGJPZjBhALm22422X4C9Y0XOsxTIuhmWYIQwJPigGsVsree6ysmLSO5oNImP9cJpAJtqnQNjoSxhbz2g1j3y6VDWcCR509VXZhjjFdNGsWEEH4gxbx3_jYmcgH67nhFfKGfDB7S-el5gWf4GOOCFPn_-yCSaefXsjSffRvc"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h2 class="font-headline-md text-headline-md text-on-surface">Juan Pérez García</h2>
+<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-label-md text-label-md font-bold uppercase tracking-wider">Vigente</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-1">Puesto de Frutas y Verduras</p>
+<div class="flex items-center gap-1 mt-stack-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="font-label-md text-label-md">Esquina Av. Principal con Calle Las Palmas</span>
+</div>
+</div>
+</article>
+<!-- Merchant Card 2 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md flex gap-gutter shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-4xl">storefront</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h2 class="font-headline-md text-headline-md text-on-surface">María Rodríguez S.</h2>
+<span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-label-md text-label-md font-bold uppercase tracking-wider">En Trámite</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-1">Comerciante de Emoliente y Bebidas</p>
+<div class="flex items-center gap-1 mt-stack-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="font-label-md text-label-md">Paradero Casco Urbano - Puesto #12</span>
+</div>
+</div>
+</article>
+<!-- Merchant Card 3 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md flex gap-gutter shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A professional street food stand with stainless steel surfaces, showing a clean environment for food preparation in a public space. Aligns with municipal standards for street commerce hygiene." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFza1iUSNYrLEL2pLV3LgBOLkz3ct52k_XucoQpnLxDwtEwFdL_DKPStNgffmmOK3oDbgxUdJpP7e1ahmOFUdTUB0Zr0-Rpv6fcvqp9fuPCIKfRrjobHIXqmnJsz4S4d7N2sqdIx65xnehuQNHZqT558bojfLeEBpgEQmjxNGtD7XffUxdt1kmHbXUz_fxIP_r9JTaozwPhzWy-wfLzH5jA9znoEa0hR4uUi2mPGkAfI8Fh2_WYhHErTVZMFxq6zbgNdk-hF1Tu6Y"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h2 class="font-headline-md text-headline-md text-on-surface">Puesto de Comida Rápida San Juan</h2>
+<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-label-md text-label-md font-bold uppercase tracking-wider">Vigente</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-1">Comida al Paso</p>
+<div class="flex items-center gap-1 mt-stack-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="font-label-md text-label-md">Frente a Av. Principal 450</span>
+</div>
+</div>
+</article>
+<!-- Merchant Card 4 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md flex gap-gutter shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A small organized stall selling traditional handicrafts and accessories in a public square. Neat presentation and professional setup for street vending." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCldQuk7maxhaxySJqaOy2DtE2DoqN-MJfe8AjA3fjejVNEUPMDuoD99eWfUDptoFjaPanBKFz-xdbKaEjkjG6Xhjvqrh_WhJCAvvcZ5f--Fq5fVpLBHauNRVIYkc0VORz5hco_IJWoYVJbLoyzQsjN6sSmDAmg3lowtv6HFdGRxP3vGg7mdsS_djJqxdEbFfGvoX9ji8mGlszWfhRxJIDfsc-lFL7tQN8ybceHLsKSPM3EEtC3gEllMKDbsxwTROXP8xWbWj2W4qs"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h2 class="font-headline-md text-headline-md text-on-surface">Comerciante Artesano El Maestro</h2>
+<span class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-label-md text-label-md font-bold uppercase tracking-wider">Vencido</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-1">Puesto de Artesanías</p>
+<div class="flex items-center gap-1 mt-stack-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="font-label-md text-label-md">Plaza Pampa Grande - Zona 2</span>
+</div>
+</div>
+</article>
+</div>
+<!-- Pagination / Load More -->
+<div class="flex justify-center mt-stack-lg">
+<button class="px-8 py-3 bg-surface-container-high text-primary font-button rounded-xl hover:bg-surface-variant transition-colors border border-outline-variant">
+                Ver más comerciantes
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-2 py-3 bg-surface z-50 rounded-t-xl shadow-[0_-4px_12px_rgba(0,0,0,0.05)] border-t border-outline-variant">
+<a class="flex-1 flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-secondary-container rounded-lg py-1 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Inicio</span>
+</a>
+<a class="flex-1 flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-secondary-container rounded-lg py-1 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-md text-label-md">Mapa</span>
+</a>
+<a class="flex-1 flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full py-1 transition-transform scale-95 active:scale-90 mx-4" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-md text-label-md">Buscar</span>
+</a>
+</nav>
+<script>
+        // Simple click interaction for the search bar
+        const searchInput = document.querySelector('input[type="text"]');
+        const searchIcon = searchInput.previousElementSibling.querySelector('.material-symbols-outlined');
+
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('search-container-focus');
+            searchIcon.style.color = '#820012';
+        });
+
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('search-container-focus');
+            searchIcon.style.color = '';
+        });
+
+        // Filter button toggle logic
+        const filterButtons = document.querySelectorAll('div.flex.gap-stack-sm button');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => {
+                    b.classList.remove('bg-primary-container', 'text-on-primary-container');
+                    b.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+                });
+                btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+                btn.classList.add('bg-primary-container', 'text-on-primary-container');
+            });
+        });
+
+        // Add dummy detail view click listener to cards
+        document.querySelectorAll('article').forEach(card => {
+            card.addEventListener('click', () => {
+                console.log('Navigating to merchant detail view...');
+            });
+        });
+    </script>
+</body></html>

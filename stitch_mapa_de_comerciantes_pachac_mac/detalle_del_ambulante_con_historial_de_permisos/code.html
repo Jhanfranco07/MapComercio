@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detalle del Comerciante - Pachacámac</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#ffdad7",
+                    "surface-container": "#ffe9e7",
+                    "tertiary": "#00435d",
+                    "on-error-container": "#93000a",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#d9e3f6",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#ffedeb",
+                    "on-primary-fixed": "#410004",
+                    "surface": "#fff8f7",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#d6e0f3",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "on-surface-variant": "#5a413f",
+                    "primary-container": "#a61d24",
+                    "surface-variant": "#f7ddda",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "background": "#fff8f7",
+                    "tertiary-fixed": "#c3e8ff",
+                    "surface-container-high": "#fde2e0",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#ffb3ae",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#ffb9b4",
+                    "on-primary-fixed-variant": "#910817",
+                    "surface-container-highest": "#f7ddda",
+                    "on-surface": "#261817",
+                    "surface-tint": "#b3272c",
+                    "surface-bright": "#fff8f7",
+                    "on-tertiary-fixed": "#001e2c",
+                    "on-secondary-container": "#596373",
+                    "outline-variant": "#e2bebc",
+                    "surface-container-low": "#fff0ef",
+                    "on-tertiary-fixed-variant": "#004c69",
+                    "inverse-surface": "#3c2c2b",
+                    "on-tertiary-container": "#91d3f9",
+                    "on-secondary-fixed": "#121c2a",
+                    "tertiary-container": "#005c7d",
+                    "on-background": "#261817",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed-dim": "#8dcff5",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#eed4d2",
+                    "primary": "#820012",
+                    "primary-fixed-dim": "#ffb3ae",
+                    "outline": "#8d706e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "container-padding": "16px",
+                    "stack-lg": "24px",
+                    "gutter": "16px",
+                    "stack-md": "16px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "button": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "button": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col pb-24">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full bg-surface dark:bg-surface-container-high border-b border-outline-variant shadow-sm flex justify-between items-center px-container-padding h-14 z-50">
+<div class="flex items-center gap-3">
+<button class="material-symbols-outlined text-primary p-1 hover:bg-surface-variant rounded-full transition-colors" onclick="window.history.back()">arrow_back</button>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Detalle del Comerciante</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant p-2 hover:bg-surface-variant rounded-full transition-colors" data-icon="share">share</button>
+</header>
+<!-- Main Content -->
+<main class="mt-14 px-container-padding py-stack-lg space-y-stack-lg">
+<!-- Header Info -->
+<section class="space-y-stack-sm">
+<div class="flex justify-between items-start">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface max-w-[70%]">Restaurante El Valle de Pachacámac</h1>
+<span class="bg-primary text-on-primary px-3 py-1 rounded-full text-label-md font-bold shadow-sm">Vigente</span>
+</div>
+<p class="font-body-lg text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-base">storefront</span>
+                RUC: 20456789123
+            </p>
+</section>
+<!-- Bento Grid Information -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Datos del Permiso Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md shadow-sm" style="opacity: 1; transform: translateY(0px); transition: 0.4s ease-out;">
+<div class="flex items-center gap-3 mb-stack-md text-primary">
+<span class="material-symbols-outlined">assignment</span>
+<h2 class="font-headline-md text-headline-md">Datos del Permiso</h2>
+</div>
+<dl class="space-y-stack-sm">
+<div class="flex justify-between border-b border-surface-variant pb-2">
+<dt class="font-label-md text-on-surface-variant">Número de Licencia</dt>
+<dd class="font-body-sm font-bold text-on-surface">LIC-2023-0894</dd>
+</div>
+<div class="flex justify-between border-b border-surface-variant pb-2">
+<dt class="font-label-md text-on-surface-variant">Fecha de Emisión</dt>
+<dd class="font-body-sm text-on-surface">15 Mar 2023</dd>
+</div>
+<div class="flex justify-between border-b border-surface-variant pb-2">
+<dt class="font-label-md text-on-surface-variant">Vencimiento</dt>
+<dd class="font-body-sm text-on-surface">15 Mar 2025</dd>
+</div>
+<div class="flex justify-between">
+<dt class="font-label-md text-on-surface-variant">Giro</dt>
+<dd class="font-body-sm text-on-surface">Restaurante y Parrilla</dd>
+</div>
+</dl>
+</div>
+<!-- Datos de Contacto Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md shadow-sm" style="opacity: 1; transform: translateY(0px); transition: 0.4s ease-out;">
+<div class="flex items-center gap-3 mb-stack-md text-primary">
+<span class="material-symbols-outlined">contact_page</span>
+<h2 class="font-headline-md text-headline-md">Datos de Contacto</h2>
+</div>
+<dl class="space-y-stack-sm">
+<div class="flex justify-between border-b border-surface-variant pb-2">
+<dt class="font-label-md text-on-surface-variant">Representante</dt>
+<dd class="font-body-sm font-bold text-on-surface">Juan Pérez García</dd>
+</div>
+<div class="flex justify-between border-b border-surface-variant pb-2">
+<dt class="font-label-md text-on-surface-variant">Teléfono</dt>
+<dd class="font-body-sm text-on-surface">+51 987 654 321</dd>
+</div>
+<div class="flex justify-between">
+<dt class="font-label-md text-on-surface-variant">Email</dt>
+<dd class="font-body-sm text-on-surface">contacto@elvalle.pe</dd>
+</div>
+</dl>
+</div>
+</div>
+<!-- Location Map -->
+<section class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary">location_on</span>
+<h3 class="font-headline-md text-headline-md">Ubicación</h3>
+</div>
+<button class="text-primary font-label-md flex items-center gap-1 hover:underline" onclick="alert('Compartiendo ubicación...')">
+<span class="material-symbols-outlined text-[16px]">share_location</span>
+                    Compartir Ubicación
+                </button>
+</div>
+<div class="relative w-full h-48 rounded-xl overflow-hidden border border-outline-variant shadow-sm">
+<img alt="Ubicación en el mapa" class="w-full h-full object-cover" data-alt="A clean, minimalist topographical map view of a suburban coastal district in Peru, showing organized street grids and green park areas. The visual style is institutional and clear, using a palette of soft grays, whites, and corporate reds to highlight specific municipal zones. High-key lighting ensures every boundary and street name is legible for administrative use." data-location="Pachacámac" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGl_6-vYGVRVi3rg83Tv_lywIYZ0TYsY6IhcqHjH7TYJq8mRoswEIdpg-uTUnswlwWxm8bEDa9KCNMYaW53dAaWBZhAfZbFZv3aZr3kzavaKVYyb3Qrl0gvZhjcq8is8NUKYEFCe9rKjZHJPXaENKxBTUn1egCg7BaNcjZ4jI8jNkb13uqzwDZacvnEIB86JEQLqNWZ_QQaqD73O8ATy9buOwo6baFMaLEjzXuNJKBVlxNAWYxCWyf3w2hHIL1s0zd1QnWHLvk3D4"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div class="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+<p class="text-label-md text-on-surface">Av. Paul Poblet 123, Pachacámac</p>
+</div>
+</div>
+</section>
+<!-- Timeline: Historial de pagos y fiscalizaciones -->
+<section class="space-y-stack-sm">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary">history</span>
+<h3 class="font-headline-md text-headline-md">Historial Reciente</h3>
+</div>
+<div class="space-y-gutter">
+<!-- Item 1: Fiscalización -->
+<div class="flex gap-4 group">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-[20px]">policy</span>
+</div>
+<div class="w-0.5 h-full bg-outline-variant -mt-1"></div>
+</div>
+<div class="flex-1 pb-gutter">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md transition-transform active:scale-95" style="opacity: 1; transform: translateY(0px); transition: 0.4s ease-out;">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-primary uppercase">Fiscalización Sanitaria</span>
+<span class="font-label-md text-on-surface-variant">05 Feb 2024</span>
+</div>
+<p class="font-body-sm text-on-surface font-bold">Estado: Conforme</p>
+<p class="font-body-sm text-on-surface-variant mt-1">Se verificó el cumplimiento de protocolos de higiene y manejo de residuos. Sin observaciones.</p>
+</div>
+</div>
+</div>
+<!-- Item 2: Pago -->
+<div class="flex gap-4 group">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<div class="w-0.5 h-full bg-outline-variant -mt-1"></div>
+</div>
+<div class="flex-1 pb-gutter">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md transition-transform active:scale-95" style="opacity: 1; transform: translateY(0px); transition: 0.4s ease-out;">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-primary uppercase">Pago de Tasa Municipal</span>
+<span class="font-label-md text-on-surface-variant">15 Ene 2024</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-body-sm font-bold text-on-surface">Monto: S/ 450.00</span>
+<span class="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Cancelado</span>
+</div>
+<p class="font-body-sm text-on-surface-variant mt-1">Recibo N° B001-00045678</p>
+</div>
+</div>
+</div>
+<!-- Item 3: Registro -->
+<div class="flex gap-4 group">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md transition-transform active:scale-95" style="opacity: 1; transform: translateY(0px); transition: 0.4s ease-out;">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-primary uppercase">Observación Registrada</span>
+<span class="font-label-md text-on-surface-variant">10 Dic 2023</span>
+</div>
+<p class="font-body-sm text-on-surface-variant italic">"El contribuyente solicita información sobre ampliación de giro para bodega."</p>
+</div>
+</div>
+</div>
+</div>
+</section><section class="space-y-stack-sm mt-stack-lg">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary">history_edu</span>
+<h3 class="font-headline-md text-headline-md">Historial de Permisos</h3>
+</div>
+<div class="space-y-gutter">
+<!-- Permiso 2023 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md shadow-sm">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-primary uppercase">Permiso 2023 - EXP-00123</span>
+<span class="bg-outline-variant text-on-surface-variant text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Vencido</span>
+</div>
+<p class="font-body-sm text-on-surface-variant">Vigencia: 15 Mar 2022 - 15 Mar 2023</p>
+</div>
+<!-- Permiso 2022 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-md shadow-sm">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-primary uppercase">Permiso 2022 - EXP-00045</span>
+<span class="bg-outline-variant text-on-surface-variant text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Vencido</span>
+</div>
+<p class="font-body-sm text-on-surface-variant">Vigencia: 15 Mar 2021 - 15 Mar 2022</p>
+</div>
+</div>
+</section>
+<!-- Action Buttons Area -->
+<div class="grid grid-cols-2 gap-4 mt-stack-lg">
+<button class="bg-primary text-on-primary py-3 rounded-xl font-button flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined">edit</span>
+                Editar
+            </button>
+<button class="bg-primary text-on-primary py-3 rounded-xl font-button flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined">update</span>
+                Renovar
+            </button>
+</div>
+</main>
+<!-- Navigation Shell (BottomNavBar) -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-2 py-3 bg-surface z-50 rounded-t-xl shadow-[0_-4px_12px_rgba(0,0,0,0.05)] border-t border-outline-variant">
+<a class="flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-secondary-container transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-secondary-fixed-variant hover:bg-secondary-container transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-md text-label-md">Mapa</span>
+</a>
+<!-- Active Tab: Buscar (Assuming the detail page was found via search) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 transition-transform scale-95 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-md text-label-md">Buscar</span>
+</a>
+</nav>
+<script>
+        // Simple Micro-interaction for page entrance
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.bg-surface-container-lowest');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.4s ease-out';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+</body></html>

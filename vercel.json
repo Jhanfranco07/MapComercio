@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "negocios.html", "use": "@vercel/static" },
+    { "src": "visor_ambulantes.html", "use": "@vercel/static" },
+    { "src": "styles.css", "use": "@vercel/static" },
+    { "src": "data-source.js", "use": "@vercel/static" },
+    { "src": "script.js", "use": "@vercel/static" },
+    { "src": "visor.js", "use": "@vercel/static" },
+    { "src": "script.ts", "use": "@vercel/static" },
+    { "src": "visor.ts", "use": "@vercel/static" },
+    { "src": "comercio_actualizado.csv", "use": "@vercel/static" },
+    { "src": "comercio_actualizado.xlsx", "use": "@vercel/static" },
+    { "src": "ambulantes_actualizado.csv", "use": "@vercel/static" },
+    { "src": "ambulantes_actualizado.xlsx", "use": "@vercel/static" },
+    { "src": "negocios66.xlsx", "use": "@vercel/static" },
+    { "src": "negocios.csv", "use": "@vercel/static" },
+    { "src": "api/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

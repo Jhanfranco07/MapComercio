@@ -1,0 +1,12 @@
+{
+  "name": "mapcomercio-main",
+  "scripts": {
+    "dev": "node local-server.js"
+  },
+  "dependencies": {
+    "googleapis": "^140.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
