@@ -804,6 +804,7 @@ function visorAttachUiEvents() {
 function visorCreateMap() {
   visorState.map = L.map("map", {
     zoomControl: true,
+    maxZoom: 20,
     preferCanvas: true,
     zoomAnimation: false,
     fadeAnimation: false,

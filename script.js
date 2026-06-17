@@ -1242,6 +1242,7 @@ async function loadData() {
 function createMap() {
   state.map = L.map("map", {
     zoomControl: true,
+    maxZoom: 20,
     preferCanvas: true,
     zoomAnimation: false,
     fadeAnimation: false,
