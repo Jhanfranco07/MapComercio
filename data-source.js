@@ -253,6 +253,7 @@ function mcIsSheetRow(row) {
 function mcNormalizeSheetRow(row, index) {
   const coords = mcParseCoords(mcGet(row, ["COORDENADAS", "UBICACION", "UBICACIÓN"]));
   const lugarVenta = String(mcGet(row, ["LUGAR DE VENTA", "UBICACION A SOLICITAR", "UBICACIÓN A SOLICITAR"])).trim();
+  const referencia = String(mcGet(row, ["REFERENCIA", "ZONA", "SECTOR"])).trim();
   const horario = String(mcGet(row, ["HORARIO"])).trim();
   const certificado = String(mcGet(row, ["N° DE CERTIFICADO", "N DE CERTIFICADO", "CERTIFICADO"])).trim();
   const dni = String(mcGet(row, ["DNI", "D.N.I.", "DNI/CE"])).trim();
@@ -280,7 +281,7 @@ function mcNormalizeSheetRow(row, index) {
     rubros: mcStandardRubros(giro, detalle),
     productos: detalle || giro,
     detalleVentaOriginal: detalle,
-    zona: mcZoneFromLocation(lugarVenta),
+    zona: referencia || mcZoneFromLocation(lugarVenta),
     lugar_exacto: lugarVenta,
     horario,
     licencia: certificado ? `N° ${certificado}`.replace(/^N°\s*N°/i, "N°") : "",
