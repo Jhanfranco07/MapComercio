@@ -44,6 +44,8 @@ const visorState = {
   refreshTimer: null,
   mapPanTimer: null,
   mapPanMode: false,
+  userLocationMarker: null,
+  userAccuracyCircle: null,
   hasFittedBounds: false
 };
 
@@ -513,6 +515,47 @@ function visorToggleMapPanMode() {
   }
 }
 
+function visorShowUserLocation(position) {
+  const { latitude, longitude, accuracy } = position.coords;
+  const latLng = [latitude, longitude];
+  const precision = Math.max(Number(accuracy) || 0, 5);
+
+  if (!visorState.userAccuracyCircle) {
+    visorState.userAccuracyCircle = L.circle(latLng, {
+      radius: precision,
+      color: "#0284c7",
+      weight: 1.5,
+      opacity: 0.75,
+      fillColor: "#38bdf8",
+      fillOpacity: 0.16,
+      interactive: false
+    }).addTo(visorState.map);
+  } else {
+    visorState.userAccuracyCircle.setLatLng(latLng).setRadius(precision);
+  }
+
+  if (!visorState.userLocationMarker) {
+    visorState.userLocationMarker = L.marker(latLng, {
+      icon: L.divIcon({
+        className: "user-location-icon",
+        html: '<span class="user-location-pulse"></span><span class="user-location-dot"></span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      }),
+      zIndexOffset: 2000,
+      keyboard: false
+    }).addTo(visorState.map);
+  } else {
+    visorState.userLocationMarker.setLatLng(latLng);
+  }
+
+  visorState.userLocationMarker
+    .unbindPopup()
+    .bindPopup(`<strong>Tu ubicacion</strong><br>Precision aproximada: ${Math.round(precision)} m`);
+  visorState.map.flyTo(latLng, 18, { duration: 0.7, animate: true });
+  visorToast(`Ubicacion encontrada con precision aproximada de ${Math.round(precision)} m.`);
+}
+
 function visorClearMarkers() {
   visorState.markersLayer.clearLayers();
 }
@@ -826,9 +869,7 @@ function visorAttachUiEvents() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        visorState.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.7, animate: true });
-      },
+      visorShowUserLocation,
       () => visorToast("No se pudo obtener tu ubicación.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );

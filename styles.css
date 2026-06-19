@@ -1881,6 +1881,41 @@ button:focus-visible {
     0 0 0 2px rgba(255, 255, 255, 0.78);
 }
 
+.user-location-icon {
+  position: relative;
+  background: transparent;
+  border: 0;
+}
+
+.user-location-dot,
+.user-location-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.user-location-dot {
+  width: 16px;
+  height: 16px;
+  border: 4px solid #fff;
+  background: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.45);
+}
+
+.user-location-pulse {
+  width: 28px;
+  height: 28px;
+  background: rgba(56, 189, 248, 0.32);
+  animation: user-location-pulse 1.8s ease-out infinite;
+}
+
+@keyframes user-location-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.9; }
+  75%, 100% { transform: translate(-50%, -50%) scale(1.55); opacity: 0; }
+}
+
 .commerce-cluster {
   display: grid;
   place-items: center;

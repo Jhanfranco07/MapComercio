@@ -51,6 +51,8 @@ const state = {
   refreshTimer: null,
   mapPanTimer: null,
   mapPanMode: false,
+  userLocationMarker: null,
+  userAccuracyCircle: null,
   hasFittedBounds: false
 };
 
@@ -560,6 +562,47 @@ function toggleMapPanMode() {
       applyMapGestureMode();
     }, 18000);
   }
+}
+
+function showUserLocation(position) {
+  const { latitude, longitude, accuracy } = position.coords;
+  const latLng = [latitude, longitude];
+  const precision = Math.max(Number(accuracy) || 0, 5);
+
+  if (!state.userAccuracyCircle) {
+    state.userAccuracyCircle = L.circle(latLng, {
+      radius: precision,
+      color: "#0284c7",
+      weight: 1.5,
+      opacity: 0.75,
+      fillColor: "#38bdf8",
+      fillOpacity: 0.16,
+      interactive: false
+    }).addTo(state.map);
+  } else {
+    state.userAccuracyCircle.setLatLng(latLng).setRadius(precision);
+  }
+
+  if (!state.userLocationMarker) {
+    state.userLocationMarker = L.marker(latLng, {
+      icon: L.divIcon({
+        className: "user-location-icon",
+        html: '<span class="user-location-pulse"></span><span class="user-location-dot"></span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      }),
+      zIndexOffset: 2000,
+      keyboard: false
+    }).addTo(state.map);
+  } else {
+    state.userLocationMarker.setLatLng(latLng);
+  }
+
+  state.userLocationMarker
+    .unbindPopup()
+    .bindPopup(`<strong>Tu ubicacion</strong><br>Precision aproximada: ${Math.round(precision)} m`);
+  state.map.flyTo(latLng, 18, { duration: 0.8 });
+  toast(`Ubicacion encontrada con precision aproximada de ${Math.round(precision)} m.`);
 }
 
 function clearMarkers() {
@@ -1149,9 +1192,7 @@ function attachUiEvents() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        state.map.flyTo([position.coords.latitude, position.coords.longitude], 16, { duration: 0.8 });
-      },
+      showUserLocation,
       () => toast("No se pudo obtener tu ubicación.", false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
