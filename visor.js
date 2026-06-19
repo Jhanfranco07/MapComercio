@@ -44,6 +44,8 @@ const visorState = {
   refreshTimer: null,
   mapPanTimer: null,
   mapPanMode: false,
+  mapRepairTimer: null,
+  mapResizeObserver: null,
   userLocationMarker: null,
   userAccuracyCircle: null,
   hasFittedBounds: false
@@ -468,7 +470,23 @@ function visorSetAppMode(mode) {
   if (mode === "search") {
     visorRenderSearchResults(visorUi.moduleSearchInput?.value || "");
     window.setTimeout(() => visorUi.moduleSearchInput?.focus(), 50);
+  } else {
+    visorRepairMapLayout(true);
   }
+}
+
+function visorRepairMapLayout(fitView = false) {
+  if (!visorState.map || document.body.classList.contains("search-mode")) return;
+  window.clearTimeout(visorState.mapRepairTimer);
+  visorState.mapRepairTimer = window.setTimeout(() => {
+    visorState.map.invalidateSize({ pan: false, animate: false });
+    visorState.tileLayer?.redraw();
+    if (fitView && visorState.allData.length) {
+      visorRefresh(true);
+    } else if (visorState.allData.length) {
+      visorRefresh(false);
+    }
+  }, 120);
 }
 
 function visorApplyMapGestureMode() {
@@ -905,6 +923,7 @@ function visorAttachUiEvents() {
 
   window.addEventListener("resize", () => {
     visorScheduleRefresh(false);
+    visorRepairMapLayout(false);
     if (window.innerWidth > 768) {
       visorSetMobileFiltersOpen(true);
     }
@@ -927,6 +946,13 @@ function visorCreateMap() {
   visorSetLeafletTheme(visorTheme());
   visorApplyMapGestureMode();
   window.addEventListener("resize", visorApplyMapGestureMode);
+  visorState.mapResizeObserver = new ResizeObserver(() => visorRepairMapLayout(false));
+  visorState.mapResizeObserver.observe(visorState.map.getContainer());
+  window.addEventListener("orientationchange", () => visorRepairMapLayout(true));
+  window.addEventListener("pageshow", (event) => visorRepairMapLayout(Boolean(event.persisted)));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") visorRepairMapLayout(false);
+  });
 }
 
 async function visorLoadData() {

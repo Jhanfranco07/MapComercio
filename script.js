@@ -51,6 +51,8 @@ const state = {
   refreshTimer: null,
   mapPanTimer: null,
   mapPanMode: false,
+  mapRepairTimer: null,
+  mapResizeObserver: null,
   userLocationMarker: null,
   userAccuracyCircle: null,
   hasFittedBounds: false
@@ -513,7 +515,23 @@ function setAppMode(mode) {
   if (mode === "search") {
     renderSearchResults(ui.moduleSearchInput?.value || "");
     window.setTimeout(() => ui.moduleSearchInput?.focus(), 50);
+  } else if (mode === "map") {
+    repairMapLayout(true);
   }
+}
+
+function repairMapLayout(fitView = false) {
+  if (!state.map || document.body.classList.contains("search-mode")) return;
+  window.clearTimeout(state.mapRepairTimer);
+  state.mapRepairTimer = window.setTimeout(() => {
+    state.map.invalidateSize({ pan: false, animate: false });
+    state.tileLayer?.redraw();
+    if (fitView && state.allData.length) {
+      refreshAndFit();
+    } else if (state.allData.length) {
+      refresh();
+    }
+  }, 120);
 }
 
 function currentMapMode() {
@@ -1266,6 +1284,7 @@ function attachUiEvents() {
   resizeObserver.observe(ui.exportBar);
   window.addEventListener("resize", () => {
     adjustFabOffset();
+    repairMapLayout(false);
     if (window.innerWidth > 768) {
       setMobileFiltersOpen(true);
     }
@@ -1365,6 +1384,13 @@ function createMap() {
   setLeafletTheme(currentTheme());
   applyMapGestureMode();
   window.addEventListener("resize", applyMapGestureMode);
+  state.mapResizeObserver = new ResizeObserver(() => repairMapLayout(false));
+  state.mapResizeObserver.observe(state.map.getContainer());
+  window.addEventListener("orientationchange", () => repairMapLayout(true));
+  window.addEventListener("pageshow", (event) => repairMapLayout(Boolean(event.persisted)));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") repairMapLayout(false);
+  });
 }
 
 window.initMap = async function initMap() {
