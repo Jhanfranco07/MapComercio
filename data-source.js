@@ -234,6 +234,19 @@ function mcIsRecordFromYear(record, year) {
   return mcRecordYears(record).includes(year);
 }
 
+function mcRecordStartYear(record) {
+  return mcAuthorizationYear(record.vigencia, [
+    record.licencia,
+    mcGet(record.raw, ["FECHA DE INGRESO", "FECHA EMITIDA CERTIFICADO", "PERIODO"])
+  ]);
+}
+
+function mcAuthorizationIdentity(record) {
+  const number = mcCertNumber(record.licencia);
+  const year = mcRecordStartYear(record);
+  return number ? `${number}-${year || "sin-anio"}` : mcNormalizeText(record.licencia);
+}
+
 function mcZoneFromLocation(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -354,7 +367,7 @@ function mcGroupAuthorizations(records) {
     const dedupeKey = hasDocumentIdentity
       ? [
           mcNormalizeText(record.nombre),
-          mcNormalizeText(record.licencia),
+          mcAuthorizationIdentity(record),
           mcNormalizeText(record.vigencia)
         ].join("|")
       : [
@@ -433,11 +446,18 @@ function mcEnrichSheetDetailsFromCsv(sheetRecords, localRecords) {
     if (!candidates.length) return record;
 
     const giroKey = mcNormalizeText(record.giro);
+    const authorizationKey = mcAuthorizationIdentity(record);
+    const sameAuthorization = candidates.filter(
+      (candidate) => mcAuthorizationIdentity(candidate) === authorizationKey
+    );
+    const eligibleCandidates = sameAuthorization.length ? sameAuthorization : [];
+    if (!eligibleCandidates.length) return record;
+
     const best =
-      candidates.find((candidate) => giroKey && mcNormalizeText(candidate.giro) === giroKey) ||
-      candidates.find((candidate) => giroKey && giroKey.includes(mcNormalizeText(candidate.giro))) ||
-      candidates.find((candidate) => giroKey && mcNormalizeText(candidate.giro).includes(giroKey)) ||
-      candidates[0];
+      eligibleCandidates.find((candidate) => giroKey && mcNormalizeText(candidate.giro) === giroKey) ||
+      eligibleCandidates.find((candidate) => giroKey && giroKey.includes(mcNormalizeText(candidate.giro))) ||
+      eligibleCandidates.find((candidate) => giroKey && mcNormalizeText(candidate.giro).includes(giroKey)) ||
+      eligibleCandidates[0];
 
     return {
       ...record,
@@ -568,9 +588,10 @@ async function mcLoadAmbulantesDataset() {
     .filter((dataset) => dataset.sourceInfo.source === "local_backup")
     .flatMap((dataset) => (dataset.rows || []).map((row, index) => mcNormalizeLocalRow(row, index)));
 
-  const localRecords2025 = localRecordsRaw;
-  const sheetRecords2026 = sheetRecordsRaw.filter((record) => mcIsRecordFromYear(record, 2026));
-  const sheetRecords2026Enriched = mcEnrichSheetDetailsFromCsv(sheetRecords2026, localRecords2025);
+  const localRecords2025 = localRecordsRaw.filter((record) => mcRecordStartYear(record) === 2025);
+  const sheetRecords2026 = sheetRecordsRaw.filter((record) => mcRecordStartYear(record) === 2026);
+  const localDetailRecords2026 = localRecordsRaw.filter((record) => mcRecordStartYear(record) === 2026);
+  const sheetRecords2026Enriched = mcEnrichSheetDetailsFromCsv(sheetRecords2026, localDetailRecords2026);
   const records = [...sheetRecords2026Enriched, ...localRecords2025];
   const grouped = mcGroupAuthorizations(records);
   const sourceInfo = {
@@ -587,6 +608,7 @@ async function mcLoadAmbulantesDataset() {
     googleSheetsRowsAfterFilter: sheetRecords2026.length,
     localRowsBeforeFilter: localRecordsRaw.length,
     localRowsAfterFilter: localRecords2025.length,
+    localRowsUsedOnlyForDetail: localDetailRecords2026.length,
     detailsFilledFromCsv: sheetRecords2026Enriched.filter((record) => record.detalleVentaFromCsv).length
   };
 
