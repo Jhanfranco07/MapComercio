@@ -2446,16 +2446,19 @@ button:focus-visible {
   .map-fabs {
     right: 14px;
     bottom: calc(var(--bottom-nav-h) + 16px);
-    gap: 8px;
+    gap: 6px;
   }
 
-  .fab {
-    min-width: 0;
-    padding: 11px 13px;
+  .map-fabs .fab {
+    min-width: 120px;
+    min-height: 42px;
+    padding: 8px 11px;
+    gap: 6px;
+    font-size: 0.82rem;
   }
 
-  .viewer-fabs .fab {
-    min-width: 0;
+  .map-fabs .fab .material-symbols-outlined {
+    font-size: 18px;
   }
 
   .mobile-filter-toggle {
