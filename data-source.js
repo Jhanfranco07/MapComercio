@@ -141,22 +141,22 @@ function mcNormalizeTurno(value) {
 }
 
 function mcInferTurno(horario) {
-  const upper = String(horario || "").toUpperCase();
-  if (upper.includes("PM") || upper.includes("TARDE")) {
-    return "tarde";
+  const upper = String(horario || "")
+    .toUpperCase()
+    .replace(/\./g, "")
+    .replace(/\b([AP])\s+M\b/g, "$1M")
+    .trim();
+  const start = upper.match(/\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\b/);
+
+  if (start) {
+    let hour = Number(start[1]);
+    const meridiem = start[3] || "";
+    if (meridiem === "AM" && hour === 12) hour = 0;
+    if (meridiem === "PM" && hour < 12) hour += 12;
+    return hour >= 12 ? "tarde" : "manana";
   }
 
-  const hourMatch = upper.match(/\b(\d{1,2})(?::|\s*H|\s*A|\s*-)/);
-  if (hourMatch) {
-    const hour = Number(hourMatch[1]);
-    if (Number.isFinite(hour) && hour >= 12) return "tarde";
-  }
-
-  if (/\b(12|13|14|15|16|17|18|19|20|21|22|23):/.test(upper)) {
-    return "tarde";
-  }
-
-  return "manana";
+  return upper.includes("TARDE") ? "tarde" : "manana";
 }
 
 function mcParseDate(value) {

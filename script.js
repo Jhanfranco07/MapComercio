@@ -159,11 +159,13 @@ function normalizeTurno(value) {
 }
 
 function inferTurno(horario) {
-  const upper = String(horario || "").toUpperCase();
-  if (upper.includes("PM") || upper.includes("TARDE") || upper.includes("15:") || upper.includes("16:")) {
-    return "tarde";
-  }
-  return "manana";
+  const upper = String(horario || "").toUpperCase().replace(/\./g, "").replace(/\b([AP])\s+M\b/g, "$1M").trim();
+  const start = upper.match(/\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\b/);
+  if (!start) return upper.includes("TARDE") ? "tarde" : "manana";
+  let hour = Number(start[1]);
+  if (start[3] === "AM" && hour === 12) hour = 0;
+  if (start[3] === "PM" && hour < 12) hour += 12;
+  return hour >= 12 ? "tarde" : "manana";
 }
 
 function hslToRgb(h, s, l) {
