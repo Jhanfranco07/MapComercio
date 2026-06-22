@@ -70,6 +70,14 @@ function mcNormalizeText(value) {
     .replace(/\s+/g, " ");
 }
 
+function mcPersonNameKey(value) {
+  return mcNormalizeText(value)
+    .split(" ")
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "es"))
+    .join(" ");
+}
+
 function mcStandardRubros(giro, productos = "") {
   const normalized = mcNormalizeText(`${giro} ${productos}`);
   if (!normalized) return [];
@@ -287,7 +295,7 @@ function mcNormalizeSheetRow(row, index) {
     source: "google_sheets",
     sourceRow: rowNumber,
     id: `sheet-${rowNumber}`,
-    personKey: dni ? `dni:${dni}` : `name:${mcNormalizeText(nombre) || rowNumber}`,
+    personKey: dni ? `dni:${dni}` : `name:${mcPersonNameKey(nombre) || rowNumber}`,
     nombre,
     dni,
     giro,
@@ -326,7 +334,7 @@ function mcNormalizeLocalRow(row, index) {
     source: "local_backup",
     sourceRow: index + 2,
     id: String(mcGet(row, ["id"]) || `local-${index + 1}`),
-    personKey: `name:${mcNormalizeText(nombre) || index + 1}`,
+    personKey: `name:${mcPersonNameKey(nombre) || index + 1}`,
     nombre,
     dni: "",
     giro: String(mcGet(row, ["giro"])).trim(),
@@ -353,7 +361,7 @@ function mcGroupAuthorizations(records) {
   const nameToDniKey = new Map();
 
   records.forEach((record) => {
-    const nameKey = mcNormalizeText(record.nombre);
+    const nameKey = mcPersonNameKey(record.nombre);
     if (record.dni && nameKey) {
       nameToDniKey.set(nameKey, `dni:${record.dni}`);
     }
@@ -366,12 +374,12 @@ function mcGroupAuthorizations(records) {
     const hasDocumentIdentity = record.licencia || record.vigencia;
     const dedupeKey = hasDocumentIdentity
       ? [
-          mcNormalizeText(record.nombre),
+          mcPersonNameKey(record.nombre),
           mcAuthorizationIdentity(record),
           mcNormalizeText(record.vigencia)
         ].join("|")
       : [
-          mcNormalizeText(record.nombre),
+          mcPersonNameKey(record.nombre),
           mcNormalizeText(record.lugar_exacto),
           Number.isFinite(record.lat) ? record.lat.toFixed(6) : "",
           Number.isFinite(record.lng) ? record.lng.toFixed(6) : ""
@@ -385,7 +393,7 @@ function mcGroupAuthorizations(records) {
   const groups = new Map();
 
   uniqueRecords.forEach((record) => {
-    const nameKey = mcNormalizeText(record.nombre);
+    const nameKey = mcPersonNameKey(record.nombre);
     const key = record.dni
       ? `dni:${record.dni}`
       : nameToDniKey.get(nameKey) || record.personKey || record.id;
@@ -418,7 +426,7 @@ function mcBuildCsvDetailIndex(localRecords) {
   const index = new Map();
 
   localRecords.forEach((record) => {
-    const nameKey = mcNormalizeText(record.nombre);
+    const nameKey = mcPersonNameKey(record.nombre);
     if (!nameKey || !record.productos) return;
     if (!index.has(nameKey)) index.set(nameKey, []);
     index.get(nameKey).push(record);
@@ -441,7 +449,7 @@ function mcEnrichSheetDetailsFromCsv(sheetRecords, localRecords) {
   return sheetRecords.map((record) => {
     if (String(record.detalleVentaOriginal || "").trim()) return record;
 
-    const nameKey = mcNormalizeText(record.nombre);
+    const nameKey = mcPersonNameKey(record.nombre);
     const candidates = detailIndex.get(nameKey) || [];
     if (!candidates.length) return record;
 
