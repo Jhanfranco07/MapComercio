@@ -1046,15 +1046,31 @@ function enableAssignMode() {
   ui.btnAssign.textContent = "Haz click en el mapa...";
   document.body.style.cursor = "crosshair";
 
-  state.mapClickListener = (event) => {
-    record.lat = event.latlng.lat;
-    record.lng = event.latlng.lng;
-    setCoordPreview(record.lat, record.lng);
-    rebuildPersonSelect();
-    ui.personSelect.value = String(record.id);
+  state.mapClickListener = async (event) => {
+    const lat = event.latlng.lat;
+    const lng = event.latlng.lng;
     finishAssignMode();
-    refresh();
-    toast(`Ubicacion actualizada para ${record.nombre || "el registro"}`);
+    ui.btnAssign.disabled = true;
+    ui.btnAssign.textContent = "Guardando...";
+    try {
+      await persistRecordLocation(record, lat, lng, false);
+      record.lat = lat;
+      record.lng = lng;
+      if (record.autorizacion_actual) {
+        record.autorizacion_actual.lat = lat;
+        record.autorizacion_actual.lng = lng;
+      }
+      setCoordPreview(lat, lng);
+      rebuildPersonSelect();
+      ui.personSelect.value = String(record.id);
+      refresh();
+      toast(`Ubicación guardada en Google Sheets para ${record.nombre || "el registro"}`);
+    } catch (error) {
+      toast(error.message, false);
+    } finally {
+      ui.btnAssign.disabled = false;
+      ui.btnAssign.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">add_location</span> Asignar';
+    }
   };
 
   state.map.on("click", state.mapClickListener);
@@ -1068,27 +1084,37 @@ function centerOnSelected() {
   }
 
   if (Number.isFinite(record.lat) && Number.isFinite(record.lng)) {
-    state.map.flyTo([record.lat, record.lng], 17, { duration: 0.8 });
+    state.map.flyTo([record.lat, record.lng], 19, { duration: 0.8 });
   } else {
     state.map.flyTo([PACHACAMAC_CENTER.lat, PACHACAMAC_CENTER.lng], 14, { duration: 0.8 });
     toast("La persona seleccionada aún no tiene ubicación.", false);
   }
 }
 
-function clearLocation() {
+async function clearLocation() {
   const record = getSelectedRecord();
   if (!record) {
     toast("Selecciona una persona.", false);
     return;
   }
 
-  record.lat = null;
-  record.lng = null;
-  setCoordPreview(null, null);
-  rebuildPersonSelect();
-  ui.personSelect.value = String(record.id);
-  refresh();
-  toast(`Ubicacion eliminada para ${record.nombre || "el registro"}`);
+  if (!window.confirm(`¿Quitar la ubicación de ${record.nombre || "este registro"}?`)) return;
+  try {
+    await persistRecordLocation(record, null, null, true);
+    record.lat = null;
+    record.lng = null;
+    if (record.autorizacion_actual) {
+      record.autorizacion_actual.lat = null;
+      record.autorizacion_actual.lng = null;
+    }
+    setCoordPreview(null, null);
+    rebuildPersonSelect();
+    ui.personSelect.value = String(record.id);
+    refresh();
+    toast(`Ubicación eliminada de Google Sheets para ${record.nombre || "el registro"}`);
+  } catch (error) {
+    toast(error.message, false);
+  }
 }
 
 async function loadFromUrl(fileName) {
@@ -1548,6 +1574,31 @@ function createMap() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") repairMapLayout(false);
   });
+}
+
+async function persistRecordLocation(record, lat, lng, clear = false) {
+  if (record.source !== "google_sheets" || !Number.isInteger(Number(record.sourceRow))) {
+    throw new Error("Esta ubicación no corresponde a una fila actual de Google Sheets.");
+  }
+  let token = window.sessionStorage.getItem("editor-admin-token") || window.sessionStorage.getItem("zonas-admin-token") || "";
+  if (!token) token = window.prompt("Ingresa la clave de edición:") || "";
+  if (!token) throw new Error("Edición cancelada.");
+  const response = await fetch("/api/ubicaciones", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": token },
+    body: JSON.stringify({ sourceRow: record.sourceRow, lat, lng, clear })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    if (response.status === 401) {
+      window.sessionStorage.removeItem("editor-admin-token");
+      window.sessionStorage.removeItem("zonas-admin-token");
+    }
+    throw new Error(payload.error || "No se pudo guardar la ubicación.");
+  }
+  window.sessionStorage.setItem("editor-admin-token", token);
+  window.sessionStorage.setItem("zonas-admin-token", token);
+  return payload;
 }
 
 window.initMap = async function initMap() {

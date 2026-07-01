@@ -5,6 +5,7 @@ const { URL } = require("node:url");
 
 const apiAutorizaciones = require("./api/autorizaciones");
 const apiZonas = require("./api/zonas");
+const apiUbicaciones = require("./api/ubicaciones");
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
@@ -161,6 +162,16 @@ const server = http.createServer(async (req, res) => {
     try {
       req.body = await readJsonBody(req);
       await apiZonas(req, apiResponse(res));
+    } catch (error) {
+      send(res, 400, JSON.stringify({ ok: false, error: error.message }), "application/json; charset=utf-8");
+    }
+    return;
+  }
+
+  if (req.url.startsWith("/api/ubicaciones")) {
+    try {
+      req.body = await readJsonBody(req);
+      await apiUbicaciones(req, apiResponse(res));
     } catch (error) {
       send(res, 400, JSON.stringify({ ok: false, error: error.message }), "application/json; charset=utf-8");
     }
