@@ -103,15 +103,41 @@
     <section class="controls editor main-editor">
       <div class="group grow">
         <label for="personSelect"><span class="material-symbols-outlined" aria-hidden="true">edit_location</span> Editor de ubicaciones</label>
+        <input id="personSearch" class="search" type="search" placeholder="Buscar por nombre, DNI o autorización" />
         <select id="personSelect">
           <option value="">Selecciona una persona...</option>
         </select>
       </div>
 
       <div class="group action-group">
-        <button id="btnAssign" class="btn primary" type="button"><span class="material-symbols-outlined" aria-hidden="true">add_location</span> Asignar</button>
+        <button id="btnAssign" class="btn primary" type="button"><span class="material-symbols-outlined" aria-hidden="true">add_location</span> Reubicar en mapa</button>
+        <button id="btnFineAdjust" class="btn" type="button"><span class="material-symbols-outlined" aria-hidden="true">open_with</span> Ajuste fino</button>
         <button id="btnCenter" class="btn" type="button"><span class="material-symbols-outlined" aria-hidden="true">my_location</span> Centrar</button>
         <button id="btnClear" class="btn" type="button"><span class="material-symbols-outlined" aria-hidden="true">location_off</span> Quitar</button>
+      </div>
+
+      <div id="fineAdjustPanel" class="fine-adjust-panel" hidden>
+        <div class="fine-adjust-copy">
+          <strong>Mover ligeramente</strong>
+          <span>Arrastra el punto azul o usa las flechas.</span>
+        </div>
+        <div class="nudge-pad" aria-label="Mover ubicación poco a poco">
+          <button type="button" data-nudge="north" aria-label="Mover al norte"><span class="material-symbols-outlined">arrow_upward</span></button>
+          <button type="button" data-nudge="west" aria-label="Mover al oeste"><span class="material-symbols-outlined">arrow_back</span></button>
+          <button type="button" data-nudge="south" aria-label="Mover al sur"><span class="material-symbols-outlined">arrow_downward</span></button>
+          <button type="button" data-nudge="east" aria-label="Mover al este"><span class="material-symbols-outlined">arrow_forward</span></button>
+        </div>
+        <label class="fine-step-label" for="nudgeStep">Paso
+          <select id="nudgeStep">
+            <option value="1">1 m</option>
+            <option value="3" selected>3 m</option>
+            <option value="5">5 m</option>
+          </select>
+        </label>
+        <div class="fine-adjust-actions">
+          <button id="btnSaveFineAdjust" class="btn primary" type="button"><span class="material-symbols-outlined">save</span> Guardar ajuste</button>
+          <button id="btnCancelFineAdjust" class="btn" type="button"><span class="material-symbols-outlined">close</span> Cancelar</button>
+        </div>
       </div>
 
       <p id="coordPreview" class="coord" aria-live="polite">Lat: -, Lng: -</p>

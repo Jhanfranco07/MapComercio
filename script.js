@@ -55,6 +55,8 @@ const state = {
   mapResizeObserver: null,
   userLocationMarker: null,
   userAccuracyCircle: null,
+  editorLocationMarker: null,
+  locationDraft: null,
   zonesLayer: null,
   zoneFeatures: [],
   zoneDrawHandler: null,
@@ -82,12 +84,18 @@ function cacheDom() {
   ui.btnXlsx = document.getElementById("btnXlsx");
   ui.btnCsv = document.getElementById("btnCsv");
   ui.btnAssign = document.getElementById("btnAssign");
+  ui.btnFineAdjust = document.getElementById("btnFineAdjust");
+  ui.fineAdjustPanel = document.getElementById("fineAdjustPanel");
+  ui.nudgeStep = document.getElementById("nudgeStep");
+  ui.btnSaveFineAdjust = document.getElementById("btnSaveFineAdjust");
+  ui.btnCancelFineAdjust = document.getElementById("btnCancelFineAdjust");
   ui.btnCenter = document.getElementById("btnCenter");
   ui.btnClear = document.getElementById("btnClear");
   ui.btnReset = document.getElementById("btnReset");
   ui.btnLoc = document.getElementById("btnLoc");
   ui.btnMapPan = document.getElementById("btnMapPan");
   ui.personSelect = document.getElementById("personSelect");
+  ui.personSearch = document.getElementById("personSearch");
   ui.coordPreview = document.getElementById("coordPreview");
   ui.exportBar = document.getElementById("exportBar");
   ui.themeToggle = document.getElementById("themeToggle");
@@ -993,7 +1001,20 @@ function buildPersonLabel(record, hasLocation) {
 }
 
 function rebuildPersonSelect() {
-  const sorted = [...state.allData].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+  const query = normalizeKey(ui.personSearch?.value);
+  const sorted = state.allData
+    .filter((record) => {
+      if (!query) return true;
+      const current = record.autorizacion_actual || {};
+      return normalizeKey([
+        record.nombre,
+        record.dni,
+        record.licencia,
+        current.numero,
+        current.certificado
+      ].join(" ")).includes(query);
+    })
+    .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
   const withoutLocation = sorted.filter((record) => !Number.isFinite(record.lat) || !Number.isFinite(record.lng));
   const withLocation = sorted.filter((record) => Number.isFinite(record.lat) && Number.isFinite(record.lng));
 
@@ -1023,7 +1044,7 @@ function rebuildPersonSelect() {
 function finishAssignMode() {
   state.assignMode = false;
   ui.btnAssign.disabled = false;
-  ui.btnAssign.textContent = "Asignar en el mapa";
+  ui.btnAssign.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">add_location</span> Reubicar en mapa';
   document.body.style.cursor = "default";
 
   if (state.mapClickListener) {
@@ -1041,6 +1062,7 @@ function enableAssignMode() {
     return;
   }
 
+  closeFineAdjust(false);
   state.assignMode = true;
   ui.btnAssign.disabled = true;
   ui.btnAssign.textContent = "Haz click en el mapa...";
@@ -1069,7 +1091,7 @@ function enableAssignMode() {
       toast(error.message, false);
     } finally {
       ui.btnAssign.disabled = false;
-      ui.btnAssign.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">add_location</span> Asignar';
+      ui.btnAssign.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">add_location</span> Reubicar en mapa';
     }
   };
 
@@ -1099,6 +1121,7 @@ async function clearLocation() {
   }
 
   if (!window.confirm(`¿Quitar la ubicación de ${record.nombre || "este registro"}?`)) return;
+  closeFineAdjust(false);
   try {
     await persistRecordLocation(record, null, null, true);
     record.lat = null;
@@ -1114,6 +1137,104 @@ async function clearLocation() {
     toast(`Ubicación eliminada de Google Sheets para ${record.nombre || "el registro"}`);
   } catch (error) {
     toast(error.message, false);
+  }
+}
+
+function closeFineAdjust(restorePreview = true) {
+  if (state.editorLocationMarker) {
+    state.map.removeLayer(state.editorLocationMarker);
+    state.editorLocationMarker = null;
+  }
+  state.locationDraft = null;
+  if (ui.fineAdjustPanel) ui.fineAdjustPanel.hidden = true;
+  if (restorePreview) {
+    const record = getSelectedRecord();
+    setCoordPreview(record?.lat, record?.lng);
+  }
+}
+
+function updateLocationDraft(lat, lng, pan = false) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  state.locationDraft = { lat, lng };
+  state.editorLocationMarker?.setLatLng([lat, lng]);
+  setCoordPreview(lat, lng);
+  if (pan) state.map.panTo([lat, lng], { animate: false });
+}
+
+function openFineAdjust() {
+  const record = getSelectedRecord();
+  if (!record) return toast("Primero selecciona una persona.", false);
+  if (!Number.isFinite(record.lat) || !Number.isFinite(record.lng)) {
+    return toast("Esta persona no tiene ubicación. Usa Reubicar en mapa.", false);
+  }
+
+  closeFineAdjust(false);
+  ui.fineAdjustPanel.hidden = false;
+  const icon = L.divIcon({
+    className: "editor-location-wrapper",
+    html: '<span class="editor-location-icon"><span class="material-symbols-outlined">open_with</span></span>',
+    iconSize: [42, 42],
+    iconAnchor: [21, 21]
+  });
+  state.editorLocationMarker = L.marker([record.lat, record.lng], {
+    icon,
+    draggable: true,
+    keyboard: true,
+    zIndexOffset: 3000,
+    title: `Ajustar ubicación de ${record.nombre || "comerciante"}`
+  }).addTo(state.map);
+  state.editorLocationMarker.on("drag", (event) => {
+    const point = event.target.getLatLng();
+    updateLocationDraft(point.lat, point.lng);
+  });
+  updateLocationDraft(record.lat, record.lng);
+  state.map.flyTo([record.lat, record.lng], 20, { duration: 0.6 });
+  toast("Arrastra el punto azul o muévelo con las flechas.");
+}
+
+function nudgeLocation(direction) {
+  if (!state.locationDraft) return;
+  const meters = Number(ui.nudgeStep?.value) || 3;
+  const latitudeRadians = state.locationDraft.lat * Math.PI / 180;
+  const latDelta = meters / 111320;
+  const lngDelta = meters / (111320 * Math.max(Math.cos(latitudeRadians), 0.01));
+  const offsets = {
+    north: [latDelta, 0],
+    south: [-latDelta, 0],
+    east: [0, lngDelta],
+    west: [0, -lngDelta]
+  };
+  const [latOffset, lngOffset] = offsets[direction] || [0, 0];
+  updateLocationDraft(
+    state.locationDraft.lat + latOffset,
+    state.locationDraft.lng + lngOffset,
+    true
+  );
+}
+
+async function saveFineAdjust() {
+  const record = getSelectedRecord();
+  const draft = state.locationDraft;
+  if (!record || !draft) return;
+  ui.btnSaveFineAdjust.disabled = true;
+  try {
+    await persistRecordLocation(record, draft.lat, draft.lng, false);
+    record.lat = draft.lat;
+    record.lng = draft.lng;
+    if (record.autorizacion_actual) {
+      record.autorizacion_actual.lat = draft.lat;
+      record.autorizacion_actual.lng = draft.lng;
+    }
+    closeFineAdjust(false);
+    rebuildPersonSelect();
+    ui.personSelect.value = String(record.id);
+    setCoordPreview(record.lat, record.lng);
+    refresh();
+    toast(`Ajuste guardado para ${record.nombre || "el registro"}`);
+  } catch (error) {
+    toast(error.message, false);
+  } finally {
+    ui.btnSaveFineAdjust.disabled = false;
   }
 }
 
@@ -1401,12 +1522,20 @@ function attachUiEvents() {
   });
 
   ui.personSelect.addEventListener("change", (event) => {
+    closeFineAdjust(false);
     state.selectedId = event.target.value || "";
     const record = getSelectedRecord();
     setCoordPreview(record ? record.lat : null, record ? record.lng : null);
   });
+  ui.personSearch?.addEventListener("input", rebuildPersonSelect);
 
   ui.btnAssign.addEventListener("click", enableAssignMode);
+  ui.btnFineAdjust?.addEventListener("click", openFineAdjust);
+  document.querySelectorAll("[data-nudge]").forEach((button) => {
+    button.addEventListener("click", () => nudgeLocation(button.dataset.nudge));
+  });
+  ui.btnSaveFineAdjust?.addEventListener("click", saveFineAdjust);
+  ui.btnCancelFineAdjust?.addEventListener("click", () => closeFineAdjust());
   ui.btnCenter.addEventListener("click", centerOnSelected);
   ui.btnClear.addEventListener("click", clearLocation);
 
