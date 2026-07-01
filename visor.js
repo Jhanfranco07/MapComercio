@@ -48,6 +48,8 @@ const visorState = {
   mapResizeObserver: null,
   userLocationMarker: null,
   userAccuracyCircle: null,
+  zonesLayer: null,
+  zoneFeatures: [],
   hasFittedBounds: false
 };
 
@@ -576,6 +578,41 @@ function visorShowUserLocation(position) {
   visorToast(`Ubicacion encontrada con precision aproximada de ${Math.round(precision)} m.`);
 }
 
+function visorZoneStyle(tipo) {
+  const styles = {
+    prohibida: { color: "#dc2626", fillColor: "#ef4444", dashArray: null },
+    saturada: { color: "#d97706", fillColor: "#f59e0b", dashArray: "8 5" },
+    restringida: { color: "#7c3aed", fillColor: "#8b5cf6", dashArray: "5 5" }
+  };
+  return { ...(styles[tipo] || styles.prohibida), weight: 7, opacity: 0.9, fillOpacity: 0.2 };
+}
+
+function visorZonePopup(feature) {
+  const properties = feature.properties || {};
+  const labels = { prohibida: "Zona prohibida", saturada: "Zona saturada", restringida: "Zona restringida" };
+  return `<div class="zone-popup"><strong>${visorEscapeHtml(properties.nombre || labels[properties.tipo] || "Zona de control")}</strong><span>${visorEscapeHtml(labels[properties.tipo] || "Zona de control")}</span>${properties.descripcion ? `<p>${visorEscapeHtml(properties.descripcion)}</p>` : ""}</div>`;
+}
+
+function visorRenderZones() {
+  if (!visorState.zonesLayer) return;
+  visorState.zonesLayer.clearLayers();
+  visorState.zoneFeatures.forEach((feature) => {
+    const layer = L.geoJSON(feature, { style: visorZoneStyle(feature.properties?.tipo) }).getLayers()[0];
+    if (!layer) return;
+    layer.bindPopup(visorZonePopup(feature));
+    visorState.zonesLayer.addLayer(layer);
+  });
+  visorState.zonesLayer.bringToBack();
+}
+
+async function visorLoadZones() {
+  const response = await fetch("/api/zonas");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) throw new Error(payload.error || "No se pudieron cargar las zonas.");
+  visorState.zoneFeatures = Array.isArray(payload.features) ? payload.features : [];
+  visorRenderZones();
+}
+
 function visorClearMarkers() {
   visorState.markersLayer.clearLayers();
 }
@@ -944,6 +981,7 @@ function visorCreateMap() {
   }).setView([VISOR_CENTER.lat, VISOR_CENTER.lng], 13, { animate: false });
 
   visorState.canvasRenderer = L.canvas({ padding: 0.25 });
+  visorState.zonesLayer = L.featureGroup().addTo(visorState.map);
   visorState.markersLayer = visorCreateClusterLayer().addTo(visorState.map);
   visorSetLeafletTheme(visorTheme());
   visorApplyMapGestureMode();
@@ -964,6 +1002,7 @@ async function visorLoadData() {
   visorPopulateFilterAndLegend();
   visorRenderSearchResults("");
   visorRefresh(true);
+  await visorLoadZones().catch((error) => visorToast(error.message, false));
   const sourceLabel = dataset.diagnostics.source === "google_sheets+local_backup"
     ? "Google Sheets + CSV"
     : dataset.diagnostics.source === "google_sheets"

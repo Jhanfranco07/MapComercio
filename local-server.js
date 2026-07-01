@@ -4,6 +4,7 @@ const path = require("node:path");
 const { URL } = require("node:url");
 
 const apiAutorizaciones = require("./api/autorizaciones");
+const apiZonas = require("./api/zonas");
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
@@ -124,23 +125,45 @@ function serveStatic(req, res) {
 
 loadEnvLocal();
 
+function apiResponse(res) {
+  return {
+    setHeader: (...args) => res.setHeader(...args),
+    status(code) {
+      res.statusCode = code;
+      return {
+        json(payload) {
+          send(res, code, JSON.stringify(payload), "application/json; charset=utf-8");
+        },
+        end() {
+          res.writeHead(code);
+          res.end();
+        }
+      };
+    }
+  };
+}
+
+async function readJsonBody(req) {
+  if (req.method !== "POST") return undefined;
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const text = Buffer.concat(chunks).toString("utf8");
+  return text ? JSON.parse(text) : {};
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.url.startsWith("/api/autorizaciones")) {
-    await apiAutorizaciones(req, {
-      setHeader: (...args) => res.setHeader(...args),
-      status(code) {
-        res.statusCode = code;
-        return {
-          json(payload) {
-            send(res, code, JSON.stringify(payload), "application/json; charset=utf-8");
-          },
-          end() {
-            res.writeHead(code);
-            res.end();
-          }
-        };
-      }
-    });
+    await apiAutorizaciones(req, apiResponse(res));
+    return;
+  }
+
+  if (req.url.startsWith("/api/zonas")) {
+    try {
+      req.body = await readJsonBody(req);
+      await apiZonas(req, apiResponse(res));
+    } catch (error) {
+      send(res, 400, JSON.stringify({ ok: false, error: error.message }), "application/json; charset=utf-8");
+    }
     return;
   }
 

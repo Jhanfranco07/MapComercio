@@ -55,6 +55,10 @@ const state = {
   mapResizeObserver: null,
   userLocationMarker: null,
   userAccuracyCircle: null,
+  zonesLayer: null,
+  zoneFeatures: [],
+  zoneDrawHandler: null,
+  selectedZoneId: "",
   hasFittedBounds: false
 };
 
@@ -97,6 +101,14 @@ function cacheDom() {
   ui.searchModule = document.getElementById("searchModule");
   ui.moduleSearchInput = document.getElementById("moduleSearchInput");
   ui.searchResults = document.getElementById("searchResults");
+  ui.zoneType = document.getElementById("zoneType");
+  ui.zoneName = document.getElementById("zoneName");
+  ui.zoneDescription = document.getElementById("zoneDescription");
+  ui.btnDrawLine = document.getElementById("btnDrawLine");
+  ui.btnDrawArea = document.getElementById("btnDrawArea");
+  ui.btnSaveZones = document.getElementById("btnSaveZones");
+  ui.btnDeleteZone = document.getElementById("btnDeleteZone");
+  ui.zoneEditorStatus = document.getElementById("zoneEditorStatus");
 }
 
 const normalizeKey = (value) => String(value || "")
@@ -623,6 +635,126 @@ function showUserLocation(position) {
     .bindPopup(`<strong>Tu ubicacion</strong><br>Precision aproximada: ${Math.round(precision)} m`);
   state.map.flyTo(latLng, 18, { duration: 0.8 });
   toast(`Ubicacion encontrada con precision aproximada de ${Math.round(precision)} m.`);
+}
+
+function zoneStyle(tipo, selected = false) {
+  const styles = {
+    prohibida: { color: "#dc2626", fillColor: "#ef4444", dashArray: null },
+    saturada: { color: "#d97706", fillColor: "#f59e0b", dashArray: "8 5" },
+    restringida: { color: "#7c3aed", fillColor: "#8b5cf6", dashArray: "5 5" }
+  };
+  const base = styles[tipo] || styles.prohibida;
+  return { ...base, weight: selected ? 9 : 7, opacity: 0.9, fillOpacity: selected ? 0.3 : 0.2 };
+}
+
+function zonePopup(feature) {
+  const properties = feature.properties || {};
+  const labels = { prohibida: "Zona prohibida", saturada: "Zona saturada", restringida: "Zona restringida" };
+  return `<div class="zone-popup"><strong>${escapeHtml(properties.nombre || labels[properties.tipo] || "Zona de control")}</strong><span>${escapeHtml(labels[properties.tipo] || "Zona de control")}</span>${properties.descripcion ? `<p>${escapeHtml(properties.descripcion)}</p>` : ""}</div>`;
+}
+
+function selectZone(id) {
+  state.selectedZoneId = id || "";
+  const selected = state.zoneFeatures.find((feature) => feature.properties?.id === id);
+  if (selected) {
+    ui.zoneType.value = selected.properties.tipo || "prohibida";
+    ui.zoneName.value = selected.properties.nombre || "";
+    ui.zoneDescription.value = selected.properties.descripcion || "";
+    ui.zoneEditorStatus.textContent = "Zona seleccionada. Puedes editar sus datos o eliminarla.";
+  }
+  ui.btnDeleteZone.disabled = !selected;
+  renderZones();
+}
+
+function renderZones() {
+  if (!state.zonesLayer) return;
+  state.zonesLayer.clearLayers();
+  state.zoneFeatures.forEach((feature) => {
+    const layer = L.geoJSON(feature, { style: zoneStyle(feature.properties?.tipo, feature.properties?.id === state.selectedZoneId) }).getLayers()[0];
+    if (!layer) return;
+    layer.bindPopup(zonePopup(feature));
+    layer.on("click", () => selectZone(feature.properties?.id));
+    state.zonesLayer.addLayer(layer);
+  });
+}
+
+async function loadZones() {
+  const response = await fetch("/api/zonas");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) throw new Error(payload.error || "No se pudieron cargar las zonas.");
+  state.zoneFeatures = Array.isArray(payload.features) ? payload.features : [];
+  renderZones();
+}
+
+function startZoneDrawing(geometryType) {
+  if (!window.L?.Draw) {
+    toast("No se pudo cargar el editor de dibujo.", false);
+    return;
+  }
+  state.zoneDrawHandler?.disable();
+  const options = { shapeOptions: zoneStyle(ui.zoneType.value), showLength: true };
+  state.zoneDrawHandler = geometryType === "Polygon"
+    ? new L.Draw.Polygon(state.map, { ...options, allowIntersection: false, showArea: true })
+    : new L.Draw.Polyline(state.map, options);
+  if (window.innerWidth <= 899) {
+    state.mapPanMode = true;
+    applyMapGestureMode();
+  }
+  state.zoneDrawHandler.enable();
+  state.map.getContainer().scrollIntoView({ behavior: "smooth", block: "center" });
+  ui.zoneEditorStatus.textContent = geometryType === "Polygon"
+    ? "Toca varios puntos para rodear el área y cierra tocando el primer punto."
+    : "Toca varios puntos siguiendo la vía y finaliza tocando el último punto.";
+}
+
+function syncSelectedZoneProperties() {
+  const selected = state.zoneFeatures.find((feature) => feature.properties?.id === state.selectedZoneId);
+  if (!selected) return;
+  selected.properties.tipo = ui.zoneType.value;
+  selected.properties.nombre = ui.zoneName.value.trim() || "Zona de control";
+  selected.properties.descripcion = ui.zoneDescription.value.trim();
+}
+
+async function saveZones() {
+  syncSelectedZoneProperties();
+  renderZones();
+  let token = window.sessionStorage.getItem("zonas-admin-token") || "";
+  if (!token) token = window.prompt("Ingresa la clave de edición de zonas:") || "";
+  if (!token) return;
+  const response = await fetch("/api/zonas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Admin-Token": token },
+    body: JSON.stringify({ features: state.zoneFeatures })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    if (response.status === 401) window.sessionStorage.removeItem("zonas-admin-token");
+    throw new Error(payload.error || "No se pudieron guardar las zonas.");
+  }
+  window.sessionStorage.setItem("zonas-admin-token", token);
+  ui.zoneEditorStatus.textContent = `${payload.saved} zonas guardadas en Google Sheets.`;
+  toast("Zonas guardadas correctamente.");
+}
+
+function setupZoneEditor() {
+  state.zonesLayer = L.featureGroup().addTo(state.map);
+  state.map.on(L.Draw.Event.CREATED, (event) => {
+    const id = `zona-${Date.now()}`;
+    const feature = event.layer.toGeoJSON();
+    feature.id = id;
+    feature.properties = {
+      id,
+      tipo: ui.zoneType.value,
+      nombre: ui.zoneName.value.trim() || "Zona de control",
+      descripcion: ui.zoneDescription.value.trim()
+    };
+    state.zoneFeatures.push(feature);
+    selectZone(id);
+    state.zoneDrawHandler = null;
+    state.mapPanMode = false;
+    applyMapGestureMode();
+    ui.zoneEditorStatus.textContent = "Zona creada. Pulsa Guardar zonas para publicarla.";
+  });
 }
 
 function clearMarkers() {
@@ -1219,6 +1351,17 @@ function attachUiEvents() {
   });
 
   ui.btnMapPan?.addEventListener("click", toggleMapPanMode);
+  ui.btnDrawLine?.addEventListener("click", () => startZoneDrawing("LineString"));
+  ui.btnDrawArea?.addEventListener("click", () => startZoneDrawing("Polygon"));
+  ui.btnSaveZones?.addEventListener("click", () => saveZones().catch((error) => toast(error.message, false)));
+  ui.btnDeleteZone?.addEventListener("click", () => {
+    if (!state.selectedZoneId) return;
+    state.zoneFeatures = state.zoneFeatures.filter((feature) => feature.properties?.id !== state.selectedZoneId);
+    state.selectedZoneId = "";
+    ui.btnDeleteZone.disabled = true;
+    ui.zoneEditorStatus.textContent = "Zona eliminada localmente. Pulsa Guardar zonas para confirmar.";
+    renderZones();
+  });
 
   ui.personSelect.addEventListener("change", (event) => {
     state.selectedId = event.target.value || "";
@@ -1383,6 +1526,7 @@ function createMap() {
 
   state.canvasRenderer = L.canvas({ padding: 0.25 });
   state.markersLayer = createClusterLayer().addTo(state.map);
+  setupZoneEditor();
   setLeafletTheme(currentTheme());
   applyMapGestureMode();
   window.addEventListener("resize", applyMapGestureMode);
@@ -1407,6 +1551,7 @@ window.initMap = async function initMap() {
 
   try {
     await loadData();
+    await loadZones().catch((error) => toast(error.message, false));
   } catch (error) {
     toast(error.message || "No se pudieron cargar los datos.", false);
   }
