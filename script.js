@@ -104,6 +104,7 @@ function cacheDom() {
   ui.zoneType = document.getElementById("zoneType");
   ui.zoneName = document.getElementById("zoneName");
   ui.zoneDescription = document.getElementById("zoneDescription");
+  ui.btnNewZone = document.getElementById("btnNewZone");
   ui.btnDrawLine = document.getElementById("btnDrawLine");
   ui.btnDrawArea = document.getElementById("btnDrawArea");
   ui.btnSaveZones = document.getElementById("btnSaveZones");
@@ -666,6 +667,18 @@ function selectZone(id) {
   renderZones();
 }
 
+function clearZoneEditor(message = "Formulario limpio. Completa los datos y dibuja una nueva zona.") {
+  state.zoneDrawHandler?.disable();
+  state.zoneDrawHandler = null;
+  state.selectedZoneId = "";
+  ui.zoneType.value = "prohibida";
+  ui.zoneName.value = "";
+  ui.zoneDescription.value = "";
+  ui.btnDeleteZone.disabled = true;
+  ui.zoneEditorStatus.textContent = message;
+  renderZones();
+}
+
 function renderZones() {
   if (!state.zonesLayer) return;
   state.zonesLayer.clearLayers();
@@ -732,7 +745,7 @@ async function saveZones() {
     throw new Error(payload.error || "No se pudieron guardar las zonas.");
   }
   window.sessionStorage.setItem("zonas-admin-token", token);
-  ui.zoneEditorStatus.textContent = `${payload.saved} zonas guardadas en Google Sheets.`;
+  clearZoneEditor(`${payload.saved} zonas guardadas. El formulario está listo para crear otra.`);
   toast("Zonas guardadas correctamente.");
 }
 
@@ -1351,16 +1364,14 @@ function attachUiEvents() {
   });
 
   ui.btnMapPan?.addEventListener("click", toggleMapPanMode);
+  ui.btnNewZone?.addEventListener("click", () => clearZoneEditor());
   ui.btnDrawLine?.addEventListener("click", () => startZoneDrawing("LineString"));
   ui.btnDrawArea?.addEventListener("click", () => startZoneDrawing("Polygon"));
   ui.btnSaveZones?.addEventListener("click", () => saveZones().catch((error) => toast(error.message, false)));
   ui.btnDeleteZone?.addEventListener("click", () => {
     if (!state.selectedZoneId) return;
     state.zoneFeatures = state.zoneFeatures.filter((feature) => feature.properties?.id !== state.selectedZoneId);
-    state.selectedZoneId = "";
-    ui.btnDeleteZone.disabled = true;
-    ui.zoneEditorStatus.textContent = "Zona eliminada localmente. Pulsa Guardar zonas para confirmar.";
-    renderZones();
+    clearZoneEditor("Zona eliminada localmente. Pulsa Guardar zonas para confirmar.");
   });
 
   ui.personSelect.addEventListener("change", (event) => {
